@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en" style="margin:0;padding:0;height:100%;">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>reliabilityiq</title>
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      min-height: 100vh;
+      background: inherit;
+      overflow-x: hidden;
+    }
+
+    #root {
+      min-height: 100vh;
+    }
+  </style>
+</head>
+
+<body style="margin:0;padding:0;height:100%;">
+  <script>
+    ; (function () {
+      var theme = localStorage.getItem('theme');
+      var isDark = theme === 'dark';
+      var bg = isDark ? '#020617' : '#ffffff';
+      if (isDark) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+      document.documentElement.style.background = bg;
+      document.body.style.background = bg;
+    })();
+  </script>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+
+</html>
