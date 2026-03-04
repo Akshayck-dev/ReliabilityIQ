@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import Card from '../../components/ui/Card';
-import { Send, Calendar, ChevronDown, Loader2, Sparkles, AlertCircle, X, Check, ArrowDownRight, Minus, ArrowUpRight } from 'lucide-react';
+import { Send, Calendar, ChevronDown, Loader2, Sparkles, AlertCircle, X, Check, ArrowDownRight, Minus, ArrowUpRight, CheckCircle2 } from 'lucide-react';
 import { taskService } from '../../services/taskService';
 import { useAuth } from '../../features/auth/AuthContext';
 
@@ -30,6 +30,8 @@ const AssignTask = () => {
     const [selectedEmployeeStats, setSelectedEmployeeStats] = useState(null);
     const [isImproving, setIsImproving] = useState(false);
     const [aiPreview, setAiPreview] = useState({ original: '', improved: '', show: false });
+    const [showSuccess, setShowSuccess] = useState(false);
+    const [submittedTitle, setSubmittedTitle] = useState('');
 
     useEffect(() => {
         const loadInitialData = async () => {
@@ -169,8 +171,15 @@ const AssignTask = () => {
                 manager_id: user.id,
                 parent_task_id: parentTaskId || null
             });
-            toast.success("Task assigned successfully!");
-            navigate('/dashboard'); // Redirect to dashboard on success
+
+            // Show success overlay
+            setSubmittedTitle(title);
+            setShowSuccess(true);
+
+            // Delay redirect to let the animation play
+            setTimeout(() => {
+                navigate('/dashboard');
+            }, 2200);
         } catch (err) {
             toast.error(err.message || "Failed to assign task.");
             setIsSubmitting(false);
@@ -414,8 +423,68 @@ const AssignTask = () => {
                     </div>
                 </div>
             )}
+
+            {/* Success Overlay */}
+            {showSuccess && <SuccessOverlay title={submittedTitle} />}
         </div>
     );
 };
+
+/* ── Success Overlay ── */
+const SuccessOverlay = ({ title }) => (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center" style={{ animation: 'fadeIn 0.3s ease-out' }}>
+        {/* Backdrop */}
+        <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
+
+        {/* Content */}
+        <div className="relative flex flex-col items-center gap-6 p-10" style={{ animation: 'scaleIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)' }}>
+            {/* Radiating rings */}
+            <div className="relative">
+                <div className="absolute inset-0 w-24 h-24 -m-2 rounded-full border-2 border-green-400/30" style={{ animation: 'ping 1.5s ease-out infinite' }} />
+                <div className="absolute inset-0 w-24 h-24 -m-2 rounded-full border border-green-400/15" style={{ animation: 'ping 1.5s ease-out 0.3s infinite' }} />
+
+                {/* Main checkmark circle */}
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center shadow-lg shadow-green-500/30" style={{ animation: 'bounceIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)' }}>
+                    <CheckCircle2 size={40} className="text-white" strokeWidth={2.5} />
+                </div>
+            </div>
+
+            {/* Text */}
+            <div className="text-center" style={{ animation: 'slideUp 0.5s ease-out 0.3s both' }}>
+                <h3 className="text-2xl font-bold text-white mb-1.5">Task Assigned!</h3>
+                <p className="text-slate-300 text-sm max-w-[280px]">"<span className="font-semibold text-white">{title}</span>" has been successfully created and assigned.</p>
+            </div>
+
+            {/* Floating particles */}
+            {[...Array(8)].map((_, i) => (
+                <div
+                    key={i}
+                    className={`absolute w-2 h-2 rounded-full ${['bg-green-400', 'bg-emerald-400', 'bg-orange-400', 'bg-blue-400', 'bg-yellow-400', 'bg-pink-400', 'bg-indigo-400', 'bg-cyan-400'][i]
+                        }`}
+                    style={{
+                        top: '35%',
+                        left: '50%',
+                        animation: `particle${i} 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.2s both`,
+                    }}
+                />
+            ))}
+        </div>
+
+        <style>{`
+            @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+            @keyframes scaleIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+            @keyframes bounceIn { 0% { transform: scale(0); } 60% { transform: scale(1.15); } 100% { transform: scale(1); } }
+            @keyframes slideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+            @keyframes ping { 0% { transform: scale(1); opacity: 0.6; } 100% { transform: scale(2); opacity: 0; } }
+            ${[...Array(8)].map((_, i) => {
+            const angle = (i * 45) * (Math.PI / 180);
+            const dist = 80 + Math.random() * 40;
+            const x = Math.cos(angle) * dist;
+            const y = Math.sin(angle) * dist;
+            return `@keyframes particle${i} { 0% { transform: translate(0, 0) scale(1); opacity: 1; } 100% { transform: translate(${x}px, ${y}px) scale(0); opacity: 0; } }`;
+        }).join('\n')}
+        `}</style>
+    </div>
+);
 
 export default AssignTask;
