@@ -23,6 +23,7 @@ const AssignTask = () => {
     const [existingTasks, setExistingTasks] = useState([]);
     const [allRawTasks, setAllRawTasks] = useState([]);
     const [teamWorkload, setTeamWorkload] = useState([]);
+    const [allEmployeeStats, setAllEmployeeStats] = useState({});
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // New Enhancements State
@@ -67,6 +68,13 @@ const AssignTask = () => {
                     // Sort to show highest workload first, limit to 3 for the UI cards
                     workload.sort((a, b) => b.tasks - a.tasks);
                     setTeamWorkload(workload.slice(0, 3));
+
+                    // Store active task counts keyed by employee ID for the dropdown
+                    const stats = {};
+                    workload.forEach(emp => {
+                        stats[emp.id] = emp.tasks;
+                    });
+                    setAllEmployeeStats(stats);
                 }
             } catch (err) {
                 console.error("Failed to load initial data", err);
@@ -250,9 +258,20 @@ const AssignTask = () => {
                                     className={`w-full px-4 py-3 bg-[#f8fafc] dark:bg-slate-800 border ${validationErrors.assignedTo ? 'border-red-500 focus:ring-red-500' : 'border-slate-200 dark:border-slate-700 focus:ring-[#ea580c]/50 focus:border-[#ea580c]'} rounded-lg text-sm text-slate-700 dark:text-slate-200 appearance-none focus:outline-none focus:ring-2 transition-colors cursor-pointer block border-r-8 border-transparent`}
                                 >
                                     <option value="" disabled>Select an employee</option>
-                                    {employees.map(emp => (
-                                        <option key={emp.id} value={emp.id}>{emp.email}</option>
-                                    ))}
+                                    {employees.map(emp => {
+                                        const activeCount = allEmployeeStats[emp.id] || 0;
+                                        const isOverloaded = activeCount > 5;
+                                        const displayName = emp.full_name || emp.email.split('@')[0];
+                                        return (
+                                            <option
+                                                key={emp.id}
+                                                value={emp.id}
+                                                style={{ color: isOverloaded ? '#ef4444' : 'inherit' }}
+                                            >
+                                                {displayName} ({activeCount} active task{activeCount !== 1 ? 's' : ''})
+                                            </option>
+                                        );
+                                    })}
                                 </select>
                                 <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 h-[18px] w-[18px] text-slate-400 pointer-events-none" />
                             </div>
