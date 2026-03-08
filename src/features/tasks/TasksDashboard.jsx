@@ -2,11 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { fetchTasks, assignTask, updateTaskStatus } from './tasksSlice';
-import { AlertCircle, RefreshCw, ClipboardList, Archive, RotateCcw, Loader2 } from 'lucide-react';
+import { AlertCircle, RefreshCw, ClipboardList, Archive, RotateCcw, Loader2, List, LayoutGrid } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { taskService } from '../../services/taskService';
 import { FullPageSpinner } from '../../components/ui/Spinner';
 import EmptyState from '../../components/ui/EmptyState';
+import PriorityBadge from '../../components/ui/PriorityBadge';
+import KanbanBoard from './KanbanBoard';
+import { sortTasksByPriority } from '../../utils/sortTasks';
 import toast from 'react-hot-toast';
 
 const TasksDashboard = () => {
@@ -16,6 +19,7 @@ const TasksDashboard = () => {
 
     const [employees, setEmployees] = useState([]);
     const [activeTab, setActiveTab] = useState('active');
+    const [viewMode, setViewMode] = useState('list');
     const [archivedTasks, setArchivedTasks] = useState([]);
     const [archivedLoading, setArchivedLoading] = useState(false);
     const [restoringId, setRestoringId] = useState(null);
@@ -41,8 +45,8 @@ const TasksDashboard = () => {
         }
     }, [activeTab, role, user?.id]);
 
-    const handleStatusChange = (taskId, newStatus) => {
-        dispatch(updateTaskStatus({ taskId, newStatus, userEmail: user.email }));
+    const handleStatusChange = (taskId, currentStatus, newStatus) => {
+        dispatch(updateTaskStatus({ taskId, currentStatus, newStatus, userEmail: user.email }));
     };
 
     const handleAssignTask = (taskId, employeeId) => {
@@ -89,6 +93,32 @@ const TasksDashboard = () => {
                 <h1 className="text-3xl font-bold text-slate-800 dark:text-white">
                     {role === 'manager' ? 'Company Tasks 🏢' : 'My Tasks 📝'}
                 </h1>
+
+                {/* View Toggle */}
+                {activeTab === 'active' && (
+                    <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg p-1 gap-0.5">
+                        <button
+                            onClick={() => setViewMode('list')}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${viewMode === 'list'
+                                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+                                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                                }`}
+                        >
+                            <List size={14} />
+                            List
+                        </button>
+                        <button
+                            onClick={() => setViewMode('kanban')}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${viewMode === 'kanban'
+                                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+                                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                                }`}
+                        >
+                            <LayoutGrid size={14} />
+                            Board
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Tab Toggle (Managers Only) */}
@@ -97,8 +127,8 @@ const TasksDashboard = () => {
                     <button
                         onClick={() => setActiveTab('active')}
                         className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors ${activeTab === 'active'
-                                ? 'bg-slate-900 dark:bg-slate-700 text-white'
-                                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                            ? 'bg-slate-900 dark:bg-slate-700 text-white'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
                             }`}
                     >
                         <span className="flex items-center gap-1.5">
@@ -109,8 +139,8 @@ const TasksDashboard = () => {
                     <button
                         onClick={() => setActiveTab('archived')}
                         className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors ${activeTab === 'archived'
-                                ? 'bg-slate-900 dark:bg-slate-700 text-white'
-                                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                            ? 'bg-slate-900 dark:bg-slate-700 text-white'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
                             }`}
                     >
                         <span className="flex items-center gap-1.5">
@@ -126,8 +156,17 @@ const TasksDashboard = () => {
                 </div>
             )}
 
-            {/* ACTIVE TASKS VIEW */}
-            {activeTab === 'active' && (
+            {/* ACTIVE TASKS — KANBAN VIEW */}
+            {activeTab === 'active' && viewMode === 'kanban' && (
+                <KanbanBoard
+                    tasks={tasks}
+                    onStatusChange={handleStatusChange}
+                    role={role}
+                />
+            )}
+
+            {/* ACTIVE TASKS — LIST VIEW */}
+            {activeTab === 'active' && viewMode === 'list' && (
                 <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
                     <div className="p-6 border-b border-slate-200 dark:border-slate-800">
                         <h2 className="text-xl font-semibold text-slate-700 dark:text-slate-200">Active Tasks ({tasks.length})</h2>
@@ -142,7 +181,7 @@ const TasksDashboard = () => {
                                 />
                             </div>
                         ) : (
-                            tasks.map(task => (
+                            sortTasksByPriority(tasks).map(task => (
                                 <div key={task.id} className="p-6 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
 
                                     <div className="flex-1">
@@ -157,6 +196,8 @@ const TasksDashboard = () => {
                                                 }`}>
                                                 {task.status.replace('_', ' ').toUpperCase()}
                                             </span>
+
+                                            <PriorityBadge priority={task.priority || 'medium'} />
 
                                             {task.due_date && (
                                                 <span className="text-slate-500 flex items-center">
@@ -182,14 +223,14 @@ const TasksDashboard = () => {
                                             <>
                                                 {task.status === 'pending' && (
                                                     <button
-                                                        onClick={() => handleStatusChange(task.id, 'in_progress')}
+                                                        onClick={() => handleStatusChange(task.id, task.status, 'in_progress')}
                                                         className="text-sm px-3 py-1.5 border border-amber-500 text-amber-600 rounded-md hover:bg-amber-50"
                                                     >
                                                         Start Work
                                                     </button>
                                                 )}
                                                 <button
-                                                    onClick={() => handleStatusChange(task.id, 'completed')}
+                                                    onClick={() => handleStatusChange(task.id, task.status, 'completed')}
                                                     className="text-sm px-3 py-1.5 border border-green-500 bg-green-50 text-green-700 rounded-md hover:bg-green-100 transition"
                                                 >
                                                     Mark Complete

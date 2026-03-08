@@ -4,7 +4,7 @@ import Card from '../../components/ui/Card';
 import {
     Calendar, Clock, FileText, Info, History, Share2,
     CheckCircle2, TrendingUp, PlayCircle, UserPlus, Edit2, Archive, RotateCcw, Loader2,
-    MessageSquare, Send, Link as LinkIcon
+    MessageSquare, Send, Link as LinkIcon, Circle, AlertTriangle, ArrowRightCircle
 } from 'lucide-react';
 import PriorityBadge from '../../components/ui/PriorityBadge';
 import Badge from '../../components/ui/Badge';
@@ -52,10 +52,13 @@ const TaskDetails = () => {
         setActionLoading('complete');
         try {
             await taskService.markTaskComplete(taskId, user.email);
-            // Optmistic UI Update
-            setRawTask(prev => ({ ...prev, status: 'completed', completed_at: new Date().toISOString() }));
+            // Re-fetch to get updated remarks (activity history) from DB
+            const updatedTask = await taskService.getTaskById(taskId);
+            setRawTask(updatedTask);
+            toast.success('Task marked as completed!');
         } catch (err) {
             console.error(err);
+            toast.error('Failed to mark task as completed.');
         } finally {
             setActionLoading(null);
         }
@@ -154,33 +157,68 @@ const TaskDetails = () => {
         'completed': 'Completed'
     };
 
-    // Split remarks into system activity logs vs user discussions
+    // Build unified activity timeline from ALL remarks
     const allRemarks = rawTask.remarks || [];
-    const systemActivity = allRemarks.filter(r => r.type === 'system').map((sys, idx) => ({
-        id: sys.id,
-        action: sys.text,
-        user: sys.author_email?.split('@')[0] || 'System',
-        date: format(new Date(sys.created_at), 'MMM dd, yyyy').toUpperCase(),
-        time: format(new Date(sys.created_at), 'h:mm a'),
-        icon: idx === 0 ? UserPlus : (sys.text.includes('Completed') ? CheckCircle2 : PlayCircle),
-        iconColor: idx === 0 ? "text-slate-400" : (sys.text.includes('Completed') ? "text-green-500" : "text-amber-500"),
-        iconBg: "bg-slate-50",
-        borderColor: "border-slate-200"
-    }));
 
-    // If no system logs found organically, mock an initial creation one to prevent empty UI
-    const defaultActivity = [{
-        id: 'initial_1',
-        action: "Task created in system",
-        user: rawTask.creator?.email?.split('@')[0] || 'Manager',
-        date: format(new Date(rawTask.created_at), 'MMM dd, yyyy').toUpperCase(),
-        time: "System",
-        icon: UserPlus,
-        iconColor: "text-slate-400",
-        iconBg: "bg-slate-50",
-        borderColor: "border-slate-200"
-    }];
+    // Categorize each remark into a timeline event
+    const getEventMeta = (remark) => {
+        const text = (remark.text || '').toLowerCase();
 
+        if (text.includes('created') || text.includes('task created')) {
+            return { icon: UserPlus, iconColor: 'text-blue-500', borderColor: 'border-blue-200 dark:border-blue-800', bgColor: 'bg-blue-50 dark:bg-blue-900/20', label: 'Task Created' };
+        }
+        if (text.includes('assigned') || text.includes('reassigned')) {
+            return { icon: ArrowRightCircle, iconColor: 'text-indigo-500', borderColor: 'border-indigo-200 dark:border-indigo-800', bgColor: 'bg-indigo-50 dark:bg-indigo-900/20', label: 'Task Assigned' };
+        }
+        if (text.includes('completed') || text.includes('marked as complete')) {
+            return { icon: CheckCircle2, iconColor: 'text-emerald-500', borderColor: 'border-emerald-200 dark:border-emerald-800', bgColor: 'bg-emerald-50 dark:bg-emerald-900/20', label: 'Task Completed' };
+        }
+        if (text.includes('status') || text.includes('changed to') || text.includes('in progress') || text.includes('in_progress')) {
+            return { icon: PlayCircle, iconColor: 'text-amber-500', borderColor: 'border-amber-200 dark:border-amber-800', bgColor: 'bg-amber-50 dark:bg-amber-900/20', label: 'Status Changed' };
+        }
+        // User remark (discussion)
+        if (remark.type !== 'system') {
+            return { icon: MessageSquare, iconColor: 'text-slate-400', borderColor: 'border-slate-200 dark:border-slate-700', bgColor: 'bg-slate-50 dark:bg-slate-800/50', label: 'Remark Added' };
+        }
+        // Generic system log
+        return { icon: Circle, iconColor: 'text-slate-400', borderColor: 'border-slate-200 dark:border-slate-700', bgColor: 'bg-slate-50 dark:bg-slate-800/50', label: 'System Event' };
+    };
+
+    // Build full timeline: sort chronologically
+    const timelineEvents = allRemarks
+        .slice()
+        .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+        .map((remark) => {
+            const meta = getEventMeta(remark);
+            return {
+                id: remark.id,
+                action: remark.text,
+                user: remark.author_email?.split('@')[0] || 'System',
+                date: format(new Date(remark.created_at), 'MMM dd, yyyy').toUpperCase(),
+                time: format(new Date(remark.created_at), 'h:mm a'),
+                isSystemEvent: remark.type === 'system',
+                ...meta
+            };
+        });
+
+    // If no timeline events exist, add a default creation event
+    if (timelineEvents.length === 0) {
+        timelineEvents.push({
+            id: 'initial_1',
+            action: 'Task created in system',
+            user: rawTask.creator?.email?.split('@')[0] || 'Manager',
+            date: format(new Date(rawTask.created_at), 'MMM dd, yyyy').toUpperCase(),
+            time: format(new Date(rawTask.created_at), 'h:mm a'),
+            icon: UserPlus,
+            iconColor: 'text-blue-500',
+            borderColor: 'border-blue-200 dark:border-blue-800',
+            bgColor: 'bg-blue-50 dark:bg-blue-900/20',
+            label: 'Task Created',
+            isSystemEvent: true
+        });
+    }
+
+    // User discussions (non-system remarks only) for the chat section
     const userDiscussions = allRemarks.filter(r => r.type !== 'system');
 
     const task = {
@@ -193,13 +231,18 @@ const TaskDetails = () => {
         deadlineDate: rawTask.due_date ? format(new Date(rawTask.due_date), 'MMM dd, yyyy') : 'No deadline',
         estimatedDuration: rawTask.due_date ? `${differenceInDays(new Date(rawTask.due_date), new Date(rawTask.created_at))} days` : 'Ongoing',
         delay: delayStr,
-        reliabilityImpact: '+2%', // Kept visual mock for now
+        reliabilityImpact: '+2%',
         assignee: {
             name: rawTask.assignee?.email || 'Unknown',
             role: rawTask.assignee?.role || 'Employee',
             avatar: (rawTask.assignee?.email?.[0] || 'U').toUpperCase()
         },
-        activity: systemActivity.length > 0 ? systemActivity : defaultActivity,
+        manager: {
+            name: rawTask.creator?.email || 'Unknown',
+            role: rawTask.creator?.role || 'Manager',
+            avatar: (rawTask.creator?.email?.[0] || 'M').toUpperCase()
+        },
+        activity: timelineEvents,
         remarks: userDiscussions
     };
 
@@ -339,30 +382,46 @@ const TaskDetails = () => {
 
                     {/* Activity History Card */}
                     <Card className="p-6">
-                        <div className="flex items-center gap-3 mb-8">
-                            <History size={20} className="text-[#ea580c] dark:text-[#f97316]" />
-                            <h2 className="text-lg font-bold text-[#0f172a] dark:text-white">Activity History</h2>
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-3">
+                                <History size={20} className="text-[#ea580c] dark:text-[#f97316]" />
+                                <h2 className="text-lg font-bold text-[#0f172a] dark:text-white">Activity Timeline</h2>
+                            </div>
+                            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{task.activity.length} event{task.activity.length !== 1 ? 's' : ''}</span>
                         </div>
 
                         {/* Timeline */}
-                        <div className="relative border-l-2 border-slate-100 dark:border-slate-800 ml-[1.125rem] space-y-8 pb-4">
-                            {task.activity.map((item) => {
+                        <div className="relative border-l-2 border-dashed border-slate-200 dark:border-slate-700 ml-[1.125rem] space-y-6 pb-2">
+                            {task.activity.map((item, idx) => {
                                 const Icon = item.icon;
+                                const isLast = idx === task.activity.length - 1;
                                 return (
                                     <div key={item.id} className="relative pl-8">
                                         {/* Timeline Dot/Icon */}
-                                        <div className={`absolute -left-[21px] top-0 w-10 h-10 rounded-full flex items-center justify-center border-2 bg-white dark:bg-slate-900 ${item.borderColor === 'border-slate-200' ? 'border-slate-200 dark:border-slate-700' : item.borderColor}`}>
-                                            <Icon size={18} className={item.iconColor === 'text-slate-400' ? 'text-slate-400 dark:text-slate-500' : item.iconColor} />
+                                        <div className={`absolute -left-[21px] top-0 w-10 h-10 rounded-full flex items-center justify-center border-2 bg-white dark:bg-slate-900 ${item.borderColor} transition-all`}>
+                                            <Icon size={17} className={item.iconColor} />
                                         </div>
 
-                                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 pt-0.5">
-                                            <div>
-                                                <p className="text-[14px] font-bold text-[#0f172a] dark:text-slate-200">{item.action}</p>
-                                                <p className="text-[13px] font-medium text-slate-500 dark:text-slate-400 mt-1">by {item.user}</p>
-                                            </div>
-                                            <div className="text-right flex flex-col sm:items-end mt-1 sm:mt-0">
-                                                <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{item.date}</span>
-                                                <span className="text-[13px] font-medium text-slate-500 dark:text-slate-400">{item.time}</span>
+                                        {/* Solid connector on last item */}
+                                        {isLast && (
+                                            <div className="absolute -left-[1px] top-10 bottom-0 w-0.5 bg-gradient-to-b from-slate-200 to-transparent dark:from-slate-700"></div>
+                                        )}
+
+                                        <div className={`rounded-lg p-3 ${item.bgColor} border border-transparent`}>
+                                            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${item.iconColor} bg-white/60 dark:bg-slate-800/60 border border-current/10`}>
+                                                            {item.label}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-[13px] font-semibold text-slate-800 dark:text-slate-200 leading-relaxed">{item.action}</p>
+                                                    <p className="text-[12px] font-medium text-slate-500 dark:text-slate-400 mt-1">by <span className="font-bold text-slate-600 dark:text-slate-300">{item.user}</span></p>
+                                                </div>
+                                                <div className="text-right flex flex-col sm:items-end shrink-0">
+                                                    <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{item.date}</span>
+                                                    <span className="text-[12px] font-medium text-slate-500 dark:text-slate-400">{item.time}</span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -507,18 +566,35 @@ const TaskDetails = () => {
                         )}
                     </div>
 
-                    {/* Assigned To Card */}
+                    {/* Assigned By / Assigned To Card */}
                     <Card className="p-6">
-                        <h3 className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4">Assigned To</h3>
-                        <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-full bg-slate-800 text-white flex items-center justify-center font-bold text-xs shrink-0 bg-cover bg-center overflow-hidden border border-slate-200 dark:border-slate-700 relative">
-                                {task.assignee.avatar}
-                            </div>
-                            <div>
-                                <h4 className="text-[14px] font-bold text-[#0f172a] dark:text-white">{task.assignee.name}</h4>
-                                <p className="text-[12px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">{task.assignee.role}</p>
-                            </div>
-                        </div>
+                        {role === 'employee' ? (
+                            <>
+                                <h3 className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4">Assigned By</h3>
+                                <div className="flex items-center gap-3">
+                                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#ea580c] to-orange-500 text-white flex items-center justify-center font-bold text-xs shrink-0 border-2 border-orange-200 dark:border-orange-900">
+                                        {task.manager.avatar}
+                                    </div>
+                                    <div>
+                                        <h4 className="text-[14px] font-bold text-[#0f172a] dark:text-white">{task.manager.name}</h4>
+                                        <p className="text-[12px] font-medium text-[#ea580c] dark:text-orange-400 mt-0.5 capitalize">{task.manager.role}</p>
+                                    </div>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <h3 className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4">Assigned To</h3>
+                                <div className="flex items-center gap-3">
+                                    <div className="h-10 w-10 rounded-full bg-slate-800 text-white flex items-center justify-center font-bold text-xs shrink-0 border border-slate-200 dark:border-slate-700">
+                                        {task.assignee.avatar}
+                                    </div>
+                                    <div>
+                                        <h4 className="text-[14px] font-bold text-[#0f172a] dark:text-white">{task.assignee.name}</h4>
+                                        <p className="text-[12px] font-medium text-slate-500 dark:text-slate-400 mt-0.5 capitalize">{task.assignee.role}</p>
+                                    </div>
+                                </div>
+                            </>
+                        )}
                     </Card>
 
                 </div>

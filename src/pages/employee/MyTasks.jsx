@@ -2,12 +2,14 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import Card from '../../components/ui/Card';
-import { ClipboardList, CheckCircle2, ClipboardSignature, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import { ClipboardList, CheckCircle2, ClipboardSignature, Loader2, AlertCircle, RefreshCw, List, LayoutGrid } from 'lucide-react';
 import { taskService } from '../../services/taskService';
 import { useAuth } from '../../features/auth/AuthContext';
 import { format, differenceInDays } from 'date-fns';
 import { FullPageSpinner } from '../../components/ui/Spinner';
 import EmptyState from '../../components/ui/EmptyState';
+import KanbanBoard from '../../features/tasks/KanbanBoard';
+import { sortTasksByPriority } from '../../utils/sortTasks';
 
 const MyTasks = () => {
     const { user } = useAuth();
@@ -16,6 +18,7 @@ const MyTasks = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [actionLoadingId, setActionLoadingId] = useState(null);
+    const [viewMode, setViewMode] = useState('list');
 
     const userId = user?.id;
 
@@ -105,7 +108,16 @@ const MyTasks = () => {
         };
     });
 
-    const filteredTasks = formattedTasks.filter(task => {
+    // Sort by priority (High → Med → Low) and then by due_date
+    const sortedFormattedTasks = sortTasksByPriority(
+        formattedTasks.map(ft => {
+            // Ensure sort uses lowercase for matching
+            const original = tasks.find(t => t.id === ft.id);
+            return { ...ft, priority_raw: (original?.priority || 'medium').toLowerCase(), due_date: original?.due_date };
+        })
+    ).map(({ priority_raw, due_date, ...rest }) => rest);
+
+    const filteredTasks = sortedFormattedTasks.filter(task => {
         if (filter === 'All') return true;
         if (filter === 'Pending') return task.status === 'Pending' || task.status === 'In Progress';
         if (filter === 'Completed') return task.status === 'Completed';
@@ -115,11 +127,11 @@ const MyTasks = () => {
     const renderPriorityBadge = (priority) => {
         const colors = {
             'HIGH': 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400',
-            'MEDIUM': 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400',
-            'LOW': 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+            'MEDIUM': 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400',
+            'LOW': 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
         };
         return (
-            <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase ${colors[priority]}`}>
+            <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase ${colors[priority] || colors['MEDIUM']}`}>
                 {priority}
             </span>
         );
@@ -140,8 +152,8 @@ const MyTasks = () => {
         );
     };
 
-    const handleStatusChange = async (taskId, newStatus) => {
-        if (actionLoadingId) return; // Prevent duplicate submissions
+    const handleStatusChange = async (taskId, currentStatus, newStatus) => {
+        if (actionLoadingId) return;
         setActionLoadingId(taskId);
         try {
             if (newStatus === 'completed') {
@@ -163,7 +175,7 @@ const MyTasks = () => {
         if (action === 'Mark Complete') {
             return (
                 <button
-                    onClick={() => handleStatusChange(taskId, 'completed')}
+                    onClick={() => handleStatusChange(taskId, 'in_progress', 'completed')}
                     disabled={isThisLoading || !!actionLoadingId}
                     className="bg-[#ea580c] hover:bg-orange-700 text-white text-[11px] font-bold px-4 py-2 rounded-md transition-colors w-28 text-center shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
                 >
@@ -175,7 +187,7 @@ const MyTasks = () => {
         if (action === 'Start Task') {
             return (
                 <button
-                    onClick={() => handleStatusChange(taskId, 'in_progress')}
+                    onClick={() => handleStatusChange(taskId, 'pending', 'in_progress')}
                     disabled={isThisLoading || !!actionLoadingId}
                     className="bg-white dark:bg-slate-900 border border-[#ea580c] text-[#ea580c] hover:bg-orange-50 dark:hover:bg-orange-950/30 text-[11px] font-bold px-4 py-2 rounded-md transition-colors w-28 text-center disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
                 >
@@ -205,9 +217,35 @@ const MyTasks = () => {
     return (
         <div className="flex flex-col h-full max-w-[1200px]">
             {/* Header */}
-            <div className="mb-6">
-                <h1 className="text-[28px] font-bold text-[#0f172a] dark:text-white tracking-tight">My Tasks</h1>
-                <p className="text-[15px] text-slate-500 dark:text-slate-400 mt-0.5">Manage and complete your assigned tasks</p>
+            <div className="mb-6 flex justify-between items-center">
+                <div>
+                    <h1 className="text-[28px] font-bold text-[#0f172a] dark:text-white tracking-tight">My Tasks</h1>
+                    <p className="text-[15px] text-slate-500 dark:text-slate-400 mt-0.5">Manage and complete your assigned tasks</p>
+                </div>
+
+                {/* View Toggle */}
+                <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg p-1 gap-0.5">
+                    <button
+                        onClick={() => setViewMode('list')}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${viewMode === 'list'
+                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                            }`}
+                    >
+                        <List size={14} />
+                        List
+                    </button>
+                    <button
+                        onClick={() => setViewMode('kanban')}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${viewMode === 'kanban'
+                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                            }`}
+                    >
+                        <LayoutGrid size={14} />
+                        Board
+                    </button>
+                </div>
             </div>
 
             {/* Stat Cards */}
@@ -250,99 +288,112 @@ const MyTasks = () => {
                 </Card>
             </div>
 
-            {/* Task Table Area */}
-            <div className="bg-white dark:bg-slate-900 rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.05)] border border-slate-200 dark:border-slate-800 overflow-hidden mb-16">
-
-                {/* Optional Filter Area */}
-                <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2">
-                    {['All', 'Pending', 'Completed'].map(f => (
-                        <button
-                            key={f}
-                            onClick={() => setFilter(f)}
-                            className={`px-4 py-1.5 rounded-full text-[13px] font-medium transition-colors ${filter === f
-                                ? 'bg-slate-900 dark:bg-slate-700 text-white'
-                                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-                                }`}
-                        >
-                            {f}
-                        </button>
-                    ))}
+            {/* KANBAN VIEW */}
+            {viewMode === 'kanban' && (
+                <div className="mb-16">
+                    <KanbanBoard
+                        tasks={tasks}
+                        onStatusChange={handleStatusChange}
+                        role="employee"
+                    />
                 </div>
+            )}
 
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm whitespace-nowrap">
-                        <thead className="text-[11px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800">
-                            <tr>
-                                <th className="px-6 py-4 font-bold">TASK NAME</th>
-                                <th className="px-6 py-4 font-bold">ASSIGNED</th>
-                                <th className="px-6 py-4 font-bold">DEADLINE</th>
-                                <th className="px-6 py-4 font-bold">PRIORITY</th>
-                                <th className="px-6 py-4 font-bold">STATUS</th>
-                                <th className="px-6 py-4 font-bold">DELAY</th>
-                                <th className="px-6 py-4 font-bold">ACTIONS</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                            {loading ? (
+            {/* LIST VIEW — Task Table Area */}
+            {viewMode === 'list' && (
+                <div className="bg-white dark:bg-slate-900 rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.05)] border border-slate-200 dark:border-slate-800 overflow-hidden mb-16">
+
+                    {/* Optional Filter Area */}
+                    <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2">
+                        {['All', 'Pending', 'Completed'].map(f => (
+                            <button
+                                key={f}
+                                onClick={() => setFilter(f)}
+                                className={`px-4 py-1.5 rounded-full text-[13px] font-medium transition-colors ${filter === f
+                                    ? 'bg-slate-900 dark:bg-slate-700 text-white'
+                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                                    }`}
+                            >
+                                {f}
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left text-sm whitespace-nowrap">
+                            <thead className="text-[11px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800">
                                 <tr>
-                                    <td colSpan="7" className="px-6 py-12 text-center text-slate-500">
-                                        <div className="flex flex-col items-center justify-center">
-                                            <Loader2 size={32} className="text-[#ea580c] animate-spin mb-3" />
-                                            <p className="text-sm font-medium text-slate-900 dark:text-slate-200">Loading tasks...</p>
-                                        </div>
-                                    </td>
+                                    <th className="px-6 py-4 font-bold">TASK NAME</th>
+                                    <th className="px-6 py-4 font-bold">ASSIGNED</th>
+                                    <th className="px-6 py-4 font-bold">DEADLINE</th>
+                                    <th className="px-6 py-4 font-bold">PRIORITY</th>
+                                    <th className="px-6 py-4 font-bold">STATUS</th>
+                                    <th className="px-6 py-4 font-bold">DELAY</th>
+                                    <th className="px-6 py-4 font-bold">ACTIONS</th>
                                 </tr>
-                            ) : filteredTasks.length === 0 ? (
-                                <tr>
-                                    <td colSpan="7" className="p-8">
-                                        <EmptyState
-                                            icon={ClipboardList}
-                                            title="No tasks found"
-                                            description="You're all caught up!"
-                                        />
-                                    </td>
-                                </tr>
-                            ) : (
-                                filteredTasks.map((task) => (
-                                    <tr key={task.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
-                                        <td className="px-6 py-5 font-semibold text-[13px] text-slate-900 dark:text-slate-100">
-                                            <Link to={`/tasks/${task.id}`} className="hover:text-[#ea580c] transition-colors">{task.name}</Link>
-                                        </td>
-                                        <td className="px-6 py-5 text-[13px] text-slate-500 dark:text-slate-400">
-                                            <span className="block">{task.assigned.split(',')[0]},</span>
-                                            <span className="block">{task.assigned.split(',')[1] || ''}</span>
-                                        </td>
-                                        <td className="px-6 py-5 text-[13px] text-slate-900 dark:text-slate-100 font-medium">
-                                            <span className={`block ${task.deadlineOverdue ? 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 px-2 py-0.5 rounded-full text-center text-[11px] font-bold -ml-2 table' : ''}`}>
-                                                {task.deadline.split(',')[0]},<br />
-                                                {task.deadline.split(',')[1] || ''}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-5">
-                                            {renderPriorityBadge(task.priority)}
-                                        </td>
-                                        <td className="px-6 py-5">
-                                            {renderStatusBadge(task.status)}
-                                        </td>
-                                        <td className="px-6 py-5 text-[12px] font-medium text-slate-500 dark:text-slate-400">
-                                            {task.delayColor === 'default' && task.delay}
-                                            {task.delayColor === 'yellow' && (
-                                                <span className="bg-[#fef3c7] dark:bg-yellow-900/30 text-[#b45309] dark:text-yellow-500 px-2.5 py-1 rounded-full">{task.delay}</span>
-                                            )}
-                                            {task.delayColor === 'red' && (
-                                                <span className="bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-2.5 py-1 rounded-full">{task.delay}</span>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-5">
-                                            {renderActionButton(task.action, task.id)}
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                {loading ? (
+                                    <tr>
+                                        <td colSpan="7" className="px-6 py-12 text-center text-slate-500">
+                                            <div className="flex flex-col items-center justify-center">
+                                                <Loader2 size={32} className="text-[#ea580c] animate-spin mb-3" />
+                                                <p className="text-sm font-medium text-slate-900 dark:text-slate-200">Loading tasks...</p>
+                                            </div>
                                         </td>
                                     </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
+                                ) : filteredTasks.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="7" className="p-8">
+                                            <EmptyState
+                                                icon={ClipboardList}
+                                                title="No tasks found"
+                                                description="You're all caught up!"
+                                            />
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    filteredTasks.map((task) => (
+                                        <tr key={task.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
+                                            <td className="px-6 py-5 font-semibold text-[13px] text-slate-900 dark:text-slate-100">
+                                                <Link to={`/tasks/${task.id}`} className="hover:text-[#ea580c] transition-colors">{task.name}</Link>
+                                            </td>
+                                            <td className="px-6 py-5 text-[13px] text-slate-500 dark:text-slate-400">
+                                                <span className="block">{task.assigned.split(',')[0]},</span>
+                                                <span className="block">{task.assigned.split(',')[1] || ''}</span>
+                                            </td>
+                                            <td className="px-6 py-5 text-[13px] text-slate-900 dark:text-slate-100 font-medium">
+                                                <span className={`block ${task.deadlineOverdue ? 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 px-2 py-0.5 rounded-full text-center text-[11px] font-bold -ml-2 table' : ''}`}>
+                                                    {task.deadline.split(',')[0]},<br />
+                                                    {task.deadline.split(',')[1] || ''}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-5">
+                                                {renderPriorityBadge(task.priority)}
+                                            </td>
+                                            <td className="px-6 py-5">
+                                                {renderStatusBadge(task.status)}
+                                            </td>
+                                            <td className="px-6 py-5 text-[12px] font-medium text-slate-500 dark:text-slate-400">
+                                                {task.delayColor === 'default' && task.delay}
+                                                {task.delayColor === 'yellow' && (
+                                                    <span className="bg-[#fef3c7] dark:bg-yellow-900/30 text-[#b45309] dark:text-yellow-500 px-2.5 py-1 rounded-full">{task.delay}</span>
+                                                )}
+                                                {task.delayColor === 'red' && (
+                                                    <span className="bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-2.5 py-1 rounded-full">{task.delay}</span>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-5">
+                                                {renderActionButton(task.action, task.id)}
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 };
