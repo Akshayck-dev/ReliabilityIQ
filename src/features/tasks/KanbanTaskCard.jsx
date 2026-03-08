@@ -1,42 +1,39 @@
 import React from 'react';
-import { useDraggable } from '@dnd-kit/core';
-import { CSS } from '@dnd-kit/utilities';
 import { Link } from 'react-router-dom';
 import { Clock, User, GripVertical } from 'lucide-react';
 import PriorityBadge from '../../components/ui/PriorityBadge';
 
-const KanbanTaskCard = ({ task, role }) => {
-    const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-        id: task.id,
-        data: { task },
-    });
+const KanbanTaskCard = ({ task, role, onDragStart }) => {
+    const handleDragStart = (e) => {
+        e.dataTransfer.setData('text/plain', JSON.stringify({
+            taskId: task.id,
+            currentStatus: task.status,
+        }));
+        e.dataTransfer.effectAllowed = 'move';
+        e.currentTarget.style.opacity = '0.4';
+    };
 
-    const style = {
-        transform: CSS.Translate.toString(transform),
-        opacity: isDragging ? 0.4 : 1,
-        cursor: 'default',
+    const handleDragEnd = (e) => {
+        e.currentTarget.style.opacity = '1';
     };
 
     return (
         <div
-            ref={setNodeRef}
-            style={style}
-            className={`group bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700 transition-all duration-200 hover:shadow-md hover:border-slate-300 dark:hover:border-slate-600 ${isDragging ? 'shadow-xl ring-2 ring-orange-400/40 scale-[1.02] z-50' : ''}`}
+            draggable
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+            className="group bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700 transition-all duration-200 hover:shadow-md hover:border-slate-300 dark:hover:border-slate-600 cursor-grab active:cursor-grabbing"
         >
             {/* Drag Handle + Title Row */}
             <div className="flex items-start gap-2">
-                <button
-                    {...listeners}
-                    {...attributes}
-                    className="mt-0.5 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors flex-shrink-0 touch-none"
-                    aria-label="Drag to reorder"
-                >
+                <div className="mt-0.5 p-1 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors flex-shrink-0">
                     <GripVertical size={14} />
-                </button>
+                </div>
 
                 <Link
                     to={`/tasks/${task.id}`}
                     className="text-sm font-semibold text-slate-900 dark:text-slate-100 hover:text-[#ea580c] dark:hover:text-orange-400 transition-colors line-clamp-2 block flex-1"
+                    draggable={false}
                 >
                     {task.title}
                 </Link>

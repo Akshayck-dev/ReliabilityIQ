@@ -1,5 +1,4 @@
-import React from 'react';
-import { useDroppable } from '@dnd-kit/core';
+import React, { useState } from 'react';
 import KanbanTaskCard from './KanbanTaskCard';
 import { Inbox } from 'lucide-react';
 
@@ -27,9 +26,38 @@ const COLUMN_CONFIG = {
     },
 };
 
-const KanbanColumn = ({ status, tasks, role }) => {
+const KanbanColumn = ({ status, tasks, role, onDrop }) => {
     const config = COLUMN_CONFIG[status];
-    const { setNodeRef, isOver } = useDroppable({ id: status });
+    const [isOver, setIsOver] = useState(false);
+
+    const handleDragOver = (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        setIsOver(true);
+    };
+
+    const handleDragLeave = (e) => {
+        // Only set isOver to false if we're leaving the drop zone entirely
+        if (!e.currentTarget.contains(e.relatedTarget)) {
+            setIsOver(false);
+        }
+    };
+
+    const handleDrop = (e) => {
+        e.preventDefault();
+        setIsOver(false);
+
+        try {
+            const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+            const { taskId, currentStatus } = data;
+
+            if (currentStatus !== status) {
+                onDrop(taskId, currentStatus, status);
+            }
+        } catch (err) {
+            // Invalid drop data, ignore
+        }
+    };
 
     return (
         <div className="flex flex-col min-w-[300px] flex-1">
@@ -46,9 +74,11 @@ const KanbanColumn = ({ status, tasks, role }) => {
 
             {/* Drop Zone */}
             <div
-                ref={setNodeRef}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
                 className={`flex-1 flex flex-col gap-3 p-3 rounded-b-xl border-2 border-dashed transition-all duration-200 min-h-[200px] ${isOver
-                        ? 'border-orange-400 bg-orange-50/50 dark:bg-orange-900/10'
+                        ? 'border-orange-400 bg-orange-50/50 dark:bg-orange-900/10 scale-[1.01]'
                         : 'border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30'
                     }`}
             >
