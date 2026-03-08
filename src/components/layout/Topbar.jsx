@@ -20,7 +20,9 @@ const Topbar = () => {
 
     // Local UI State
     const [showNotifications, setShowNotifications] = useState(false);
+    const [isAnimating, setIsAnimating] = useState(false);
     const notificationRef = useRef(null);
+    const prevFirstNotifIdRef = useRef(null);
 
     // 1. Initial Fetch
     useEffect(() => {
@@ -54,6 +56,20 @@ const Topbar = () => {
             supabase.removeChannel(channel);
         };
     }, [user, dispatch]);
+
+    // 3. Animation Trigger
+    useEffect(() => {
+        const firstNotifId = notifications?.[0]?.id;
+        if (firstNotifId && prevFirstNotifIdRef.current && firstNotifId !== prevFirstNotifIdRef.current) {
+            setIsAnimating(true);
+            const timer = setTimeout(() => setIsAnimating(false), 800);
+            prevFirstNotifIdRef.current = firstNotifId;
+            return () => clearTimeout(timer);
+        }
+        if (firstNotifId) {
+            prevFirstNotifIdRef.current = firstNotifId;
+        }
+    }, [notifications]);
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -112,13 +128,11 @@ const Topbar = () => {
                 <div className="relative" ref={notificationRef}>
                     <button
                         onClick={() => setShowNotifications(!showNotifications)}
-                        className="relative p-2 text-slate-500 hover:bg-slate-50 rounded-full transition-colors focus:outline-none"
+                        className={`relative p-2 text-slate-500 hover:bg-slate-50 rounded-full transition-colors focus:outline-none ${isAnimating ? 'animate-bell-shake text-[#ea580c] dark:text-[#ea580c]' : ''}`}
                     >
-                        <Bell size={20} />
+                        <Bell size={20} className={isAnimating ? 'fill-current' : ''} />
                         {unreadCount > 0 && (
-                            <span className="absolute top-1 right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full ring-2 ring-white min-w-[20px] text-center transform translate-x-1/4 -translate-y-1/4">
-                                {displayUnread}
-                            </span>
+                            <span className="absolute top-1 right-1 bg-red-500 w-2.5 h-2.5 rounded-full ring-[2.5px] ring-white dark:ring-slate-900 shadow-sm transform translate-x-1/4 -translate-y-1/4"></span>
                         )}
                     </button>
 

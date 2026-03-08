@@ -4,7 +4,7 @@ import Card from '../../components/ui/Card';
 import {
     Calendar, Clock, FileText, Info, History, Share2,
     CheckCircle2, TrendingUp, PlayCircle, UserPlus, Edit2, Archive, RotateCcw, Loader2,
-    MessageSquare, Send, Link as LinkIcon, Circle, AlertTriangle, ArrowRightCircle
+    MessageSquare, Send, Link as LinkIcon, Circle, AlertTriangle, ArrowRightCircle, Trash2
 } from 'lucide-react';
 import PriorityBadge from '../../components/ui/PriorityBadge';
 import Badge from '../../components/ui/Badge';
@@ -27,6 +27,9 @@ const TaskDetails = () => {
     const [newRemark, setNewRemark] = useState('');
     const [isSubmittingRemark, setIsSubmittingRemark] = useState(false);
     const [showArchiveModal, setShowArchiveModal] = useState(false);
+    const [showDeleteRemarkModal, setShowDeleteRemarkModal] = useState(false);
+    const [remarkToDelete, setRemarkToDelete] = useState(null);
+    const [isDeletingRemark, setIsDeletingRemark] = useState(false);
 
     useEffect(() => {
         const fetchTask = async () => {
@@ -120,6 +123,26 @@ const TaskDetails = () => {
             toast.error("Failed: " + (err.message || "Could not post remark."));
         } finally {
             setIsSubmittingRemark(false);
+        }
+    };
+
+    const handleDeleteRemark = async () => {
+        if (!remarkToDelete) return;
+        setIsDeletingRemark(true);
+        try {
+            await taskService.deleteRemarkFromTask(taskId, remarkToDelete.id);
+            setRawTask(prev => {
+                const newRemarks = prev.remarks.filter(r => r.id !== remarkToDelete.id);
+                return { ...prev, remarks: newRemarks };
+            });
+            toast.success("Remark deleted!");
+        } catch (err) {
+            console.error("Failed to delete remark:", err);
+            toast.error("Failed to delete remark");
+        } finally {
+            setIsDeletingRemark(false);
+            setShowDeleteRemarkModal(false);
+            setRemarkToDelete(null);
         }
     };
 
@@ -456,6 +479,18 @@ const TaskDetails = () => {
                                                     <span className="text-[10px] text-slate-400 dark:text-slate-500">
                                                         {format(new Date(remark.created_at), 'MMM d, h:mm a')}
                                                     </span>
+                                                    {(isMine || role === 'manager') && (
+                                                        <button
+                                                            onClick={() => {
+                                                                setRemarkToDelete(remark);
+                                                                setShowDeleteRemarkModal(true);
+                                                            }}
+                                                            className="ml-2 text-slate-400 hover:text-red-500 transition-colors"
+                                                            title="Delete remark"
+                                                        >
+                                                            <Trash2 size={12} />
+                                                        </button>
+                                                    )}
                                                 </div>
                                                 <div className={`px-4 py-2.5 rounded-2xl text-[14px] ${isMine
                                                     ? 'bg-[#ea580c] text-white rounded-tr-sm'
@@ -613,6 +648,23 @@ const TaskDetails = () => {
                 variant="warning"
                 icon={Archive}
                 loading={actionLoading === 'archive'}
+            />
+
+            {/* Delete Remark Confirmation Modal */}
+            <ConfirmModal
+                isOpen={showDeleteRemarkModal}
+                onConfirm={handleDeleteRemark}
+                onCancel={() => {
+                    setShowDeleteRemarkModal(false);
+                    setRemarkToDelete(null);
+                }}
+                title="Delete Remark?"
+                message="Are you sure you want to delete this remark? This action cannot be undone."
+                confirmLabel="Delete"
+                cancelLabel="Cancel"
+                variant="danger"
+                icon={Trash2}
+                loading={isDeletingRemark}
             />
         </div>
     );

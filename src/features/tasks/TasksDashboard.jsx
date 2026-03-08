@@ -2,14 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { fetchTasks, assignTask, updateTaskStatus } from './tasksSlice';
-import { AlertCircle, RefreshCw, ClipboardList, Archive, RotateCcw, Loader2, List, LayoutGrid } from 'lucide-react';
+import { AlertCircle, RefreshCw, ClipboardList, Archive, RotateCcw, Loader2, List, LayoutGrid, Plus } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { taskService } from '../../services/taskService';
-import { FullPageSpinner } from '../../components/ui/Spinner';
 import EmptyState from '../../components/ui/EmptyState';
 import PriorityBadge from '../../components/ui/PriorityBadge';
+import { ListTaskRowSkeleton } from '../../components/ui/Skeleton';
 import KanbanBoard from './KanbanBoard';
 import { sortTasksByPriority } from '../../utils/sortTasks';
+import { getDueStatus } from '../../utils/dueDateUtils';
 import toast from 'react-hot-toast';
 
 const TasksDashboard = () => {
@@ -67,7 +68,7 @@ const TasksDashboard = () => {
         }
     };
 
-    if (status === 'loading' && tasks.length === 0) return <FullPageSpinner message="Loading tasks..." />;
+    // Removed FullPageSpinner early return for proper Skeleton rendering
     if (status === 'failed') {
         return (
             <div className="flex flex-col items-center justify-center p-8 bg-white dark:bg-slate-900 border border-red-100 dark:border-red-900/30 rounded-xl max-w-lg mx-auto mt-12 shadow-sm text-center">
@@ -100,8 +101,8 @@ const TasksDashboard = () => {
                         <button
                             onClick={() => setViewMode('list')}
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${viewMode === 'list'
-                                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
-                                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
                                 }`}
                         >
                             <List size={14} />
@@ -110,8 +111,8 @@ const TasksDashboard = () => {
                         <button
                             onClick={() => setViewMode('kanban')}
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${viewMode === 'kanban'
-                                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
-                                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
                                 }`}
                         >
                             <LayoutGrid size={14} />
@@ -172,12 +173,22 @@ const TasksDashboard = () => {
                         <h2 className="text-xl font-semibold text-slate-700 dark:text-slate-200">Active Tasks ({tasks.length})</h2>
                     </div>
                     <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-[600px] overflow-y-auto">
-                        {tasks.length === 0 ? (
+                        {status === 'loading' && tasks.length === 0 ? (
+                            [...Array(5)].map((_, i) => <ListTaskRowSkeleton key={i} />)
+                        ) : tasks.length === 0 ? (
                             <div className="p-8">
                                 <EmptyState
                                     icon={ClipboardList}
-                                    title="No tasks found"
-                                    description="There are currently no tasks to display."
+                                    title="Looks quite empty here"
+                                    description="Let's get things moving. Assign a new task to your team."
+                                    action={
+                                        role === 'manager' && (
+                                            <Link to="/tasks/assign" className="inline-flex items-center gap-2 bg-[#ea580c] hover:bg-orange-600 text-white px-4 py-2 mt-2 rounded-lg text-sm font-bold transition-colors">
+                                                <Plus size={16} />
+                                                Assign New Task
+                                            </Link>
+                                        )
+                                    }
                                 />
                             </div>
                         ) : (
@@ -199,12 +210,22 @@ const TasksDashboard = () => {
 
                                             <PriorityBadge priority={task.priority || 'medium'} />
 
-                                            {task.due_date && (
-                                                <span className="text-slate-500 flex items-center">
-                                                    <svg className="w-4 h-4 mr-1 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                                    Due: {new Date(task.due_date).toLocaleDateString()}
-                                                </span>
-                                            )}
+                                            {task.due_date && (() => {
+                                                const dueStatus = getDueStatus(task);
+                                                const dueStyles = {
+                                                    'overdue': 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 font-bold px-2 py-0.5 rounded-full text-[11px]',
+                                                    'due_today': 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 font-bold px-2 py-0.5 rounded-full text-[11px]',
+                                                    'due_soon': 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 font-bold px-2 py-0.5 rounded-full text-[11px]'
+                                                };
+                                                return (
+                                                    <span className={`flex items-center ${dueStatus ? dueStyles[dueStatus] : 'text-slate-500 dark:text-slate-400'}`}>
+                                                        <svg className={`w-4 h-4 mr-1 ${dueStatus ? '' : 'text-amber-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        </svg>
+                                                        {dueStatus === 'overdue' ? 'Overdue' : dueStatus === 'due_today' ? 'Due Today' : dueStatus === 'due_soon' ? 'Due Soon' : `Due: ${new Date(task.due_date).toLocaleDateString()}`}
+                                                    </span>
+                                                )
+                                            })()}
 
                                             {role === 'manager' && (
                                                 <span className="text-slate-500 flex items-center">
@@ -276,8 +297,8 @@ const TasksDashboard = () => {
                             <div className="p-8">
                                 <EmptyState
                                     icon={Archive}
-                                    title="No archived tasks"
-                                    description="Archived tasks will appear here."
+                                    title="Empty Archive"
+                                    description="Archived tasks will appear here when they are no longer active."
                                 />
                             </div>
                         ) : (

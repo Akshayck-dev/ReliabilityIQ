@@ -5,7 +5,9 @@ import { Navigate } from 'react-router-dom';
 import StatCard from '../../components/ui/StatCard';
 import { FullPageSpinner } from '../../components/ui/Spinner';
 import Card from '../../components/ui/Card';
-import { AlertCircle, RefreshCw, Users, ShieldCheck, Clock } from 'lucide-react';
+import { AlertCircle, RefreshCw, Users, ShieldCheck, Clock, Activity } from 'lucide-react';
+import { AnalyticsRowSkeleton } from '../../components/ui/Skeleton';
+import EmptyState from '../../components/ui/EmptyState';
 
 const TeamAnalytics = () => {
     const { role, user } = useAuth();
@@ -53,12 +55,11 @@ const TeamAnalytics = () => {
         };
     }, [stats]);
 
-    // If not manager, boot them
     if (role !== 'manager') {
         return <Navigate to="/unauthorized" replace />;
     }
 
-    if (loading) return <FullPageSpinner message="Compiling analytics..." />;
+    // Removed FullPageSpinner early return to prioritize Skeleton layout loading
 
     if (error) {
         return (
@@ -137,16 +138,16 @@ const TeamAnalytics = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900">
-                            {stats.length === 0 ? (
+                            {loading ? (
+                                [...Array(5)].map((_, i) => <AnalyticsRowSkeleton key={i} />)
+                            ) : stats.length === 0 ? (
                                 <tr>
                                     <td colSpan="3" className="px-6 py-12 text-center">
-                                        <div className="flex flex-col items-center justify-center">
-                                            <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-4 border border-slate-100">
-                                                <AlertCircle className="w-6 h-6 text-slate-300" />
-                                            </div>
-                                            <h3 className="text-base font-bold text-slate-800">No Analytics Data</h3>
-                                            <p className="text-sm text-slate-500 mt-1 max-w-sm mx-auto">Employees will appear here once tasks are assigned to them.</p>
-                                        </div>
+                                        <EmptyState
+                                            icon={Activity}
+                                            title="No Analytics Data"
+                                            description="Employees will appear here once tasks are assigned to them."
+                                        />
                                     </td>
                                 </tr>
                             ) : (

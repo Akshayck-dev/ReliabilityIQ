@@ -173,8 +173,10 @@ const EmployeeDashboard = () => {
                             value={metrics.completedCount}
                             icon={CheckCircle2}
                             trend="Tasks thoroughly finished"
-                            iconBg="bg-emerald-50"
-                            iconColor="text-emerald-600"
+                            progress={metrics.totalAssigned > 0 ? (metrics.completedCount / metrics.totalAssigned) * 100 : 0}
+                            progressText={`Completed tasks: ${metrics.completedCount} / ${metrics.totalAssigned}`}
+                            iconBg="bg-emerald-50 dark:bg-emerald-900/30"
+                            iconColor="text-emerald-600 dark:text-emerald-400"
                         />
                         <StatCard
                             title="Pending Tasks"

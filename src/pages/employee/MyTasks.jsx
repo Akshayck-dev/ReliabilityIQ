@@ -10,6 +10,8 @@ import { FullPageSpinner } from '../../components/ui/Spinner';
 import EmptyState from '../../components/ui/EmptyState';
 import KanbanBoard from '../../features/tasks/KanbanBoard';
 import { sortTasksByPriority } from '../../utils/sortTasks';
+import { TableTaskRowSkeleton } from '../../components/ui/Skeleton';
+import { getDueStatus } from '../../utils/dueDateUtils';
 
 const MyTasks = () => {
     const { user } = useAuth();
@@ -41,7 +43,7 @@ const MyTasks = () => {
         fetchMyTasks();
     }, [fetchMyTasks]);
 
-    if (loading) return <FullPageSpinner message="Loading your tasks..." />;
+    // Removed FullPageSpinner early return to use skeletons
 
     if (error) {
         return (
@@ -70,6 +72,7 @@ const MyTasks = () => {
         let delayStr = '-';
         let delayColor = 'default';
         let isOverdue = false;
+        const dueStatus = getDueStatus(task);
 
         if (task.due_date) {
             const due = new Date(task.due_date);
@@ -104,7 +107,8 @@ const MyTasks = () => {
             delay: delayStr,
             action: actionLabel,
             deadlineOverdue: isOverdue,
-            delayColor: delayColor
+            delayColor: delayColor,
+            dueStatus: dueStatus
         };
     });
 
@@ -334,21 +338,14 @@ const MyTasks = () => {
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                                 {loading ? (
-                                    <tr>
-                                        <td colSpan="7" className="px-6 py-12 text-center text-slate-500">
-                                            <div className="flex flex-col items-center justify-center">
-                                                <Loader2 size={32} className="text-[#ea580c] animate-spin mb-3" />
-                                                <p className="text-sm font-medium text-slate-900 dark:text-slate-200">Loading tasks...</p>
-                                            </div>
-                                        </td>
-                                    </tr>
+                                    [...Array(5)].map((_, i) => <TableTaskRowSkeleton key={i} />)
                                 ) : filteredTasks.length === 0 ? (
                                     <tr>
                                         <td colSpan="7" className="p-8">
                                             <EmptyState
                                                 icon={ClipboardList}
-                                                title="No tasks found"
-                                                description="You're all caught up!"
+                                                title="All Caught Up!"
+                                                description="You have no tasks assigned to you right now. Take a breather!"
                                             />
                                         </td>
                                     </tr>
@@ -363,7 +360,7 @@ const MyTasks = () => {
                                                 <span className="block">{task.assigned.split(',')[1] || ''}</span>
                                             </td>
                                             <td className="px-6 py-5 text-[13px] text-slate-900 dark:text-slate-100 font-medium">
-                                                <span className={`block ${task.deadlineOverdue ? 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 px-2 py-0.5 rounded-full text-center text-[11px] font-bold -ml-2 table' : ''}`}>
+                                                <span className={`block ${task.dueStatus === 'overdue' ? 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 px-2 py-0.5 rounded-full text-center text-[11px] font-bold -ml-2 table' : task.dueStatus === 'due_today' ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-full text-center text-[11px] font-bold -ml-2 table' : task.dueStatus === 'due_soon' ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full text-center text-[11px] font-bold -ml-2 table' : ''}`}>
                                                     {task.deadline.split(',')[0]},<br />
                                                     {task.deadline.split(',')[1] || ''}
                                                 </span>

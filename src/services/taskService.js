@@ -463,6 +463,35 @@ export const taskService = {
     },
 
     /**
+     * For Shared App: Delete a remark from a specific task
+     */
+    deleteRemarkFromTask: async (taskId, remarkId) => {
+        // 1. Fetch current remarks array
+        const { data: task, error: fetchErr } = await supabase
+            .from('tasks')
+            .select('remarks')
+            .eq('id', taskId)
+            .single();
+
+        if (fetchErr) throw new Error(fetchErr.message);
+
+        const currentRemarks = task.remarks || [];
+        const newRemarks = currentRemarks.filter(r => r.id !== remarkId);
+
+        // 2. Update with the filtered array
+        const { data, error } = await supabase
+            .from('tasks')
+            .update({ remarks: newRemarks })
+            .eq('id', taskId)
+            .select()
+            .single();
+
+        if (error) throw new Error(error.message);
+
+        return data;
+    },
+
+    /**
      * Fetch user notifications
      */
     getNotifications: async (userId) => {

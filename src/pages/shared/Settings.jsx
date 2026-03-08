@@ -7,8 +7,9 @@ import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import {
     User, Mail, Shield, Sun, Moon, Bell, Clock, ListChecks,
-    Calendar, LogOut, Loader2, Check, ChevronDown
+    Calendar, LogOut, Loader2, Check, ChevronDown, Archive, Trash2, AlertTriangle
 } from 'lucide-react';
+import ConfirmModal from '../../components/ui/ConfirmModal';
 
 const Toggle = ({ enabled, onChange, label, description, icon: Icon }) => (
     <div className="flex items-center justify-between py-4">
@@ -60,6 +61,7 @@ const Settings = () => {
     const [defaultDueDays, setDefaultDueDays] = useState(() => localStorage.getItem('riq_default_due_days') || '7');
 
     const [isLoggingOut, setIsLoggingOut] = useState(false);
+    const [showLogoutModal, setShowLogoutModal] = useState(false);
 
     useEffect(() => {
         if (user) setName(user.user_metadata?.name || '');
@@ -129,6 +131,10 @@ const Settings = () => {
             toast.error('Failed to logout');
             setIsLoggingOut(false);
         }
+    };
+
+    const confirmLogout = () => {
+        setShowLogoutModal(true);
     };
 
     return (
@@ -290,13 +296,26 @@ const Settings = () => {
 
                     {/* Logout */}
                     <button
-                        onClick={handleLogout}
+                        onClick={confirmLogout}
                         disabled={isLoggingOut}
                         className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-red-50 dark:bg-red-900/15 hover:bg-red-100 dark:hover:bg-red-900/30 border border-red-200 dark:border-red-900/30 rounded-xl text-sm font-bold text-red-600 dark:text-red-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {isLoggingOut ? <Loader2 size={16} className="animate-spin" /> : <LogOut size={16} />}
                         {isLoggingOut ? 'Logging out...' : 'Sign Out'}
                     </button>
+
+                    <ConfirmModal
+                        isOpen={showLogoutModal}
+                        onConfirm={handleLogout}
+                        onCancel={() => setShowLogoutModal(false)}
+                        title="Sign Out"
+                        message="Are you sure you want to sign out of your account?"
+                        confirmLabel="Yes, Sign Out"
+                        cancelLabel="Cancel"
+                        variant="danger"
+                        icon={LogOut}
+                        loading={isLoggingOut}
+                    />
                 </SectionCard>
             </div>
         </div>

@@ -1,7 +1,7 @@
 import React from 'react';
 import Card from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
-import { TaskRowSkeleton } from '../../../components/ui/Skeleton';
+import { TableTaskRowSkeleton } from '../../../components/ui/Skeleton';
 import EmptyState from '../../../components/ui/EmptyState';
 import { Users } from 'lucide-react';
 
@@ -41,10 +41,10 @@ const TaskTable = ({ employees = [], loading = false }) => {
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                         {loading ? (
                             <>
-                                <TaskRowSkeleton />
-                                <TaskRowSkeleton />
-                                <TaskRowSkeleton />
-                                <TaskRowSkeleton />
+                                <TableTaskRowSkeleton />
+                                <TableTaskRowSkeleton />
+                                <TableTaskRowSkeleton />
+                                <TableTaskRowSkeleton />
                             </>
                         ) : employees.length === 0 ? (
                             <tr>
