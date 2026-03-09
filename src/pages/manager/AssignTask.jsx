@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import Card from '../../components/ui/Card';
-import { Send, Calendar, ChevronDown, Loader2, Sparkles, AlertCircle, X, Check, ArrowDownRight, Minus, ArrowUpRight, CheckCircle2 } from 'lucide-react';
+import { Send, Calendar, ChevronDown, Loader2, Sparkles, AlertCircle, X, Check, ArrowDownRight, Minus, ArrowUpRight, CheckCircle2, UserCheck } from 'lucide-react';
 import { taskService } from '../../services/taskService';
+import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../features/auth/AuthContext';
 
 const AssignTask = () => {
@@ -30,6 +31,7 @@ const AssignTask = () => {
     const [validationErrors, setValidationErrors] = useState({});
     const [selectedEmployeeStats, setSelectedEmployeeStats] = useState(null);
     const [isImproving, setIsImproving] = useState(false);
+    const [isSmartAssigning, setIsSmartAssigning] = useState(false);
     const [aiPreview, setAiPreview] = useState({ original: '', improved: '', show: false });
     const [showSuccess, setShowSuccess] = useState(false);
     const [submittedTitle, setSubmittedTitle] = useState('');
@@ -159,6 +161,51 @@ const AssignTask = () => {
         toast.success("Description updated!");
     };
 
+    const handleSmartAssign = async () => {
+        if (!title.trim() || !description.trim()) {
+            toast.error("Please add a title and description first so the AI understands the task.");
+            return;
+        }
+
+        setIsSmartAssigning(true);
+        try {
+            // Build the payload summarizing the currently available employees and their workload
+            const employeesPayload = teamWorkload.map(emp => ({ id: emp.id, name: emp.name, active_tasks: emp.tasks }));
+            // Add other employees not in the top 3 workload chart just in case
+            employees.forEach(emp => {
+                if (!employeesPayload.find(e => e.id === emp.id)) {
+                    employeesPayload.push({ id: emp.id, name: emp.full_name || emp.email.split('@')[0], active_tasks: allEmployeeStats[emp.id] || 0 })
+                }
+            });
+
+            const { data, error } = await supabase.functions.invoke('openai-helper', {
+                body: {
+                    action: 'smart_assignment',
+                    payload: {
+                        task_title: title,
+                        task_description: description,
+                        employees: employeesPayload
+                    }
+                }
+            });
+
+            if (error) throw error;
+
+            if (data?.success && data?.result?.suggested_employee_id) {
+                setAssignedTo(data.result.suggested_employee_id);
+                if (validationErrors.assignedTo) setValidationErrors({ ...validationErrors, assignedTo: null });
+                toast.success(`AI suggested successfully! Reason: ${data.result.reason}`);
+            } else {
+                toast.error("AI couldn't find a suitable match.");
+            }
+        } catch (err) {
+            console.error(err);
+            toast.error("Failed to automatically assign employee.");
+        } finally {
+            setIsSmartAssigning(false);
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
 
@@ -250,7 +297,18 @@ const AssignTask = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Assign To */}
                         <div>
-                            <label className="block text-[13px] font-bold text-slate-800 dark:text-slate-200 mb-2">Assign To</label>
+                            <div className="flex items-center justify-between mb-2">
+                                <label className="block text-[13px] font-bold text-slate-800 dark:text-slate-200">Assign To</label>
+                                <button
+                                    type="button"
+                                    onClick={handleSmartAssign}
+                                    disabled={isSmartAssigning}
+                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold text-violet-600 bg-violet-50 hover:bg-violet-100 rounded-md transition-colors disabled:opacity-50"
+                                >
+                                    {isSmartAssigning ? <Loader2 size={12} className="animate-spin text-violet-600" /> : <UserCheck size={12} className="text-violet-600" />}
+                                    {isSmartAssigning ? 'Routing...' : 'Smart Assign'}
+                                </button>
+                            </div>
                             <div className="relative">
                                 <select
                                     value={assignedTo}

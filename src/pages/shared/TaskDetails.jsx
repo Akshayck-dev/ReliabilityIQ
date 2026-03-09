@@ -4,7 +4,7 @@ import Card from '../../components/ui/Card';
 import {
     Calendar, Clock, FileText, Info, History, Share2,
     CheckCircle2, TrendingUp, PlayCircle, UserPlus, Edit2, Archive, RotateCcw, Loader2,
-    MessageSquare, Send, Link as LinkIcon, Circle, AlertTriangle, ArrowRightCircle, Trash2
+    MessageSquare, Send, Link as LinkIcon, Circle, AlertTriangle, ArrowRightCircle, Trash2, Sparkles, Wand2
 } from 'lucide-react';
 import PriorityBadge from '../../components/ui/PriorityBadge';
 import Badge from '../../components/ui/Badge';
@@ -12,6 +12,7 @@ import { taskService } from '../../services/taskService';
 import { useAuth } from '../../features/auth/AuthContext';
 import { format, differenceInDays } from 'date-fns';
 import toast from 'react-hot-toast';
+import { supabase } from '../../lib/supabase';
 import ConfirmModal from '../../components/ui/ConfirmModal';
 
 const TaskDetails = () => {
@@ -30,6 +31,9 @@ const TaskDetails = () => {
     const [showDeleteRemarkModal, setShowDeleteRemarkModal] = useState(false);
     const [remarkToDelete, setRemarkToDelete] = useState(null);
     const [isDeletingRemark, setIsDeletingRemark] = useState(false);
+    const [isAdjustingTone, setIsAdjustingTone] = useState(false);
+    const [isSummarizing, setIsSummarizing] = useState(false);
+    const [summaryResult, setSummaryResult] = useState(null);
 
     useEffect(() => {
         const fetchTask = async () => {
@@ -143,6 +147,50 @@ const TaskDetails = () => {
             setIsDeletingRemark(false);
             setShowDeleteRemarkModal(false);
             setRemarkToDelete(null);
+        }
+    };
+
+    const handleAIToneAdjust = async () => {
+        if (!newRemark.trim()) return;
+        setIsAdjustingTone(true);
+        try {
+            const { data, error } = await supabase.functions.invoke('openai-helper', {
+                body: { action: 'tone_adjustment', payload: { text: newRemark } }
+            });
+            if (error) throw error;
+            if (data?.success && data?.result) {
+                setNewRemark(data.result);
+                toast.success('Tone adjusted professionally!');
+            }
+        } catch (err) {
+            console.error(err);
+            toast.error('AI tone adjustment failed.');
+        } finally {
+            setIsAdjustingTone(false);
+        }
+    };
+
+    const handleAISummarize = async () => {
+        if (!rawTask?.remarks || rawTask.remarks.length === 0) {
+            toast.error("No remarks to summarize.");
+            return;
+        }
+        setIsSummarizing(true);
+        setSummaryResult(null);
+        try {
+            const { data, error } = await supabase.functions.invoke('openai-helper', {
+                body: { action: 'summarize_remarks', payload: { remarks: rawTask.remarks } }
+            });
+            if (error) throw error;
+            if (data?.success && data?.result) {
+                setSummaryResult(data.result);
+                toast.success('Summary generated!');
+            }
+        } catch (err) {
+            console.error(err);
+            toast.error('AI summary failed.');
+        } finally {
+            setIsSummarizing(false);
         }
     };
 
@@ -455,10 +503,34 @@ const TaskDetails = () => {
 
                     {/* Discussion & Remarks Card */}
                     <Card className="p-6">
-                        <div className="flex items-center gap-3 mb-6">
-                            <MessageSquare size={20} className="text-[#ea580c]" />
-                            <h2 className="text-lg font-bold text-[#0f172a]">Discussion & Remarks</h2>
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-3">
+                                <MessageSquare size={20} className="text-[#ea580c] dark:text-[#f97316]" />
+                                <h2 className="text-lg font-bold text-[#0f172a] dark:text-white">Discussion & Remarks</h2>
+                            </div>
+                            {rawTask?.remarks?.length > 1 && (
+                                <button
+                                    onClick={handleAISummarize}
+                                    disabled={isSummarizing}
+                                    className="flex items-center gap-1.5 text-xs font-bold text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/30 hover:bg-violet-100 dark:hover:bg-violet-900/50 px-3 py-1.5 rounded-full transition-colors disabled:opacity-50"
+                                >
+                                    {isSummarizing ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                                    AI Summary
+                                </button>
+                            )}
                         </div>
+
+                        {summaryResult && (
+                            <div className="mb-6 p-4 bg-violet-50/50 dark:bg-violet-900/10 border border-violet-100 dark:border-violet-900/30 rounded-xl relative">
+                                <div className="absolute -top-2 -left-2 bg-violet-100 dark:bg-violet-900 rounded-full p-1 border border-white dark:border-slate-900">
+                                    <Sparkles size={12} className="text-violet-600 dark:text-violet-400" />
+                                </div>
+                                <h4 className="text-[11px] font-bold text-violet-600 dark:text-violet-400 uppercase tracking-widest mb-1 pl-2">AI Generated Summary</h4>
+                                <p className="text-sm text-slate-700 dark:text-slate-300 pl-2 leading-relaxed">
+                                    {summaryResult}
+                                </p>
+                            </div>
+                        )}
 
                         {/* Remarks Feed */}
                         <div className="flex flex-col gap-4 mb-6 max-h-[400px] overflow-y-auto pr-2">
@@ -520,13 +592,23 @@ const TaskDetails = () => {
                                     }
                                 }}
                             />
-                            <button
-                                onClick={handlePostRemark}
-                                disabled={isSubmittingRemark || !newRemark.trim()}
-                                className="shrink-0 self-end w-12 h-12 bg-[#0f172a] dark:bg-slate-700 hover:bg-slate-800 dark:hover:bg-slate-600 rounded-xl flex items-center justify-center text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
-                            >
-                                {isSubmittingRemark ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} className="ml-0.5" />}
-                            </button>
+                            <div className="flex flex-col gap-2 shrink-0 self-end">
+                                <button
+                                    onClick={handleAIToneAdjust}
+                                    disabled={isAdjustingTone || !newRemark.trim() || isSubmittingRemark}
+                                    title="Make Professional (AI)"
+                                    className="w-12 h-10 bg-slate-100 dark:bg-slate-700 hover:bg-violet-50 dark:hover:bg-violet-900/30 border border-slate-200 dark:border-slate-600 hover:border-violet-200 dark:hover:border-violet-800 rounded-xl flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                                >
+                                    {isAdjustingTone ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
+                                </button>
+                                <button
+                                    onClick={handlePostRemark}
+                                    disabled={isSubmittingRemark || !newRemark.trim() || isAdjustingTone}
+                                    className="w-12 h-12 bg-[#0f172a] dark:bg-slate-700 hover:bg-slate-800 dark:hover:bg-slate-600 rounded-xl flex items-center justify-center text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                                >
+                                    {isSubmittingRemark ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} className="ml-0.5" />}
+                                </button>
+                            </div>
                         </div>
                     </Card>
                 </div>
