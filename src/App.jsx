@@ -4,6 +4,7 @@ import { AuthProvider } from './features/auth/AuthContext';
 import AppRoutes from './AppRoutes';
 import { Toaster } from 'react-hot-toast';
 import ErrorBoundary from './components/ErrorBoundary';
+import { Analytics } from '@vercel/analytics/react';
 
 function App() {
     const themeMode = useSelector((state) => state.theme.mode);
@@ -48,6 +49,7 @@ function App() {
                     }}
                 />
                 <AppRoutes />
+                <Analytics />
             </AuthProvider>
         </ErrorBoundary>
     );
