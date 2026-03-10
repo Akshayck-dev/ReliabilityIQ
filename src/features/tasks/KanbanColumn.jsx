@@ -26,7 +26,7 @@ const COLUMN_CONFIG = {
     },
 };
 
-const KanbanColumn = ({ status, tasks, role, onDrop }) => {
+const KanbanColumn = ({ status, tasks, role, onDrop, onTaskClick }) => {
     const config = COLUMN_CONFIG[status];
     const [isOver, setIsOver] = useState(false);
 
@@ -78,8 +78,8 @@ const KanbanColumn = ({ status, tasks, role, onDrop }) => {
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
                 className={`flex-1 flex flex-col gap-3 p-3 rounded-b-xl border-2 border-dashed transition-all duration-200 min-h-[200px] ${isOver
-                        ? 'border-orange-400 bg-orange-50/50 dark:bg-orange-900/10 scale-[1.01]'
-                        : 'border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30'
+                    ? 'border-orange-400 bg-orange-50/50 dark:bg-orange-900/10 scale-[1.01]'
+                    : 'border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30'
                     }`}
             >
                 {tasks.length === 0 ? (
@@ -90,7 +90,7 @@ const KanbanColumn = ({ status, tasks, role, onDrop }) => {
                     </div>
                 ) : (
                     tasks.map(task => (
-                        <KanbanTaskCard key={task.id} task={task} role={role} />
+                        <KanbanTaskCard key={task.id} task={task} role={role} onTaskClick={onTaskClick} />
                     ))
                 )}
             </div>

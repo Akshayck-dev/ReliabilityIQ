@@ -12,6 +12,7 @@ import KanbanBoard from '../../features/tasks/KanbanBoard';
 import { sortTasksByPriority } from '../../utils/sortTasks';
 import { TableTaskRowSkeleton } from '../../components/ui/Skeleton';
 import { getDueStatus } from '../../utils/dueDateUtils';
+import TaskDetailsDrawer from '../../features/tasks/TaskDetailsDrawer';
 
 const MyTasks = () => {
     const { user } = useAuth();
@@ -21,6 +22,7 @@ const MyTasks = () => {
     const [error, setError] = useState(null);
     const [actionLoadingId, setActionLoadingId] = useState(null);
     const [viewMode, setViewMode] = useState('list');
+    const [selectedTaskId, setSelectedTaskId] = useState(null);
 
     const userId = user?.id;
 
@@ -97,6 +99,8 @@ const MyTasks = () => {
         if (uiStatus === 'In Progress') actionLabel = 'Mark Complete';
         if (uiStatus === 'Completed') actionLabel = 'Completed';
 
+        const isBlocked = task.parent_status && task.parent_status !== 'completed';
+
         return {
             id: task.id,
             name: task.title,
@@ -108,7 +112,8 @@ const MyTasks = () => {
             action: actionLabel,
             deadlineOverdue: isOverdue,
             delayColor: delayColor,
-            dueStatus: dueStatus
+            dueStatus: dueStatus,
+            isBlocked: isBlocked
         };
     });
 
@@ -299,6 +304,7 @@ const MyTasks = () => {
                         tasks={tasks}
                         onStatusChange={handleStatusChange}
                         role="employee"
+                        onTaskClick={(id) => setSelectedTaskId(id)}
                     />
                 </div>
             )}
@@ -353,7 +359,16 @@ const MyTasks = () => {
                                     filteredTasks.map((task) => (
                                         <tr key={task.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
                                             <td className="px-6 py-5 font-semibold text-[13px] text-slate-900 dark:text-slate-100">
-                                                <Link to={`/tasks/${task.id}`} className="hover:text-[#ea580c] transition-colors">{task.name}</Link>
+                                                <div className="flex items-center gap-2">
+                                                    <button onClick={() => setSelectedTaskId(task.id)} className="hover:text-[#ea580c] transition-colors overflow-hidden text-ellipsis text-left font-semibold focus:outline-none">
+                                                        {task.name}
+                                                    </button>
+                                                    {task.isBlocked && (
+                                                        <div title="Blocked by dependency" className="flex items-center justify-center p-1 rounded-full bg-red-50 dark:bg-red-900/30 text-red-500 dark:text-red-400">
+                                                            <AlertCircle size={14} />
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </td>
                                             <td className="px-6 py-5 text-[13px] text-slate-500 dark:text-slate-400">
                                                 <span className="block">{task.assigned.split(',')[0]},</span>
@@ -391,6 +406,16 @@ const MyTasks = () => {
                     </div>
                 </div>
             )}
+
+            {/* Slide-out Task Details Drawer */}
+            <TaskDetailsDrawer
+                taskId={selectedTaskId}
+                onClose={() => {
+                    setSelectedTaskId(null);
+                    // Optionally refresh tasks if we expect background changes
+                    fetchMyTasks();
+                }}
+            />
         </div>
     );
 };

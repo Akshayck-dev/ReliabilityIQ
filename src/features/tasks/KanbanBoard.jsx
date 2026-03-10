@@ -4,7 +4,7 @@ import { sortTasksByPriority } from '../../utils/sortTasks';
 
 const STATUSES = ['pending', 'in_progress', 'completed'];
 
-const KanbanBoard = ({ tasks, onStatusChange, role }) => {
+const KanbanBoard = ({ tasks, onStatusChange, role, onTaskClick }) => {
     // Group tasks by status and sort within each group
     const groupedTasks = useMemo(() => {
         const groups = {
@@ -43,6 +43,7 @@ const KanbanBoard = ({ tasks, onStatusChange, role }) => {
                     tasks={groupedTasks[status]}
                     role={role}
                     onDrop={handleDrop}
+                    onTaskClick={onTaskClick}
                 />
             ))}
         </div>

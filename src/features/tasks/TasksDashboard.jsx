@@ -12,6 +12,7 @@ import KanbanBoard from './KanbanBoard';
 import { sortTasksByPriority } from '../../utils/sortTasks';
 import { getDueStatus } from '../../utils/dueDateUtils';
 import toast from 'react-hot-toast';
+import TaskDetailsDrawer from './TaskDetailsDrawer';
 
 const TasksDashboard = () => {
     const dispatch = useDispatch();
@@ -24,6 +25,7 @@ const TasksDashboard = () => {
     const [archivedTasks, setArchivedTasks] = useState([]);
     const [archivedLoading, setArchivedLoading] = useState(false);
     const [restoringId, setRestoringId] = useState(null);
+    const [selectedTaskId, setSelectedTaskId] = useState(null);
 
     useEffect(() => {
         dispatch(fetchTasks({ role, userId: user?.id }));
@@ -163,6 +165,7 @@ const TasksDashboard = () => {
                     tasks={tasks}
                     onStatusChange={handleStatusChange}
                     role={role}
+                    onTaskClick={(id) => setSelectedTaskId(id)}
                 />
             )}
 
@@ -196,9 +199,16 @@ const TasksDashboard = () => {
                                 <div key={task.id} className="p-6 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
 
                                     <div className="flex-1">
-                                        <h3 className="font-semibold text-lg text-slate-900 dark:text-slate-100">
-                                            <Link to={`/tasks/${task.id}`} className="hover:text-[#ea580c] transition-colors relative z-10 block w-fit">{task.title}</Link>
-                                        </h3>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <h3 className="font-semibold text-lg text-slate-900 dark:text-slate-100">
+                                                <button onClick={() => setSelectedTaskId(task.id)} className="hover:text-[#ea580c] transition-colors relative z-10 block w-fit focus:outline-none">{task.title}</button>
+                                            </h3>
+                                            {task.parent_status && task.parent_status !== 'completed' && (
+                                                <div title="Blocked by dependency" className="flex items-center justify-center p-1 rounded-full bg-red-50 dark:bg-red-900/30 text-red-500 dark:text-red-400">
+                                                    <AlertCircle size={16} />
+                                                </div>
+                                            )}
+                                        </div>
                                         {task.description && <p className="text-slate-600 dark:text-slate-400 mt-1">{task.description}</p>}
 
                                         <div className="flex flex-wrap items-center mt-3 gap-3 text-xs font-medium">
@@ -306,7 +316,7 @@ const TasksDashboard = () => {
                                 <div key={task.id} className="p-6 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
                                     <div className="flex-1">
                                         <h3 className="font-semibold text-lg text-slate-900 dark:text-slate-100">
-                                            <Link to={`/tasks/${task.id}`} className="hover:text-[#ea580c] transition-colors relative z-10 block w-fit">{task.title}</Link>
+                                            <button onClick={() => setSelectedTaskId(task.id)} className="hover:text-[#ea580c] transition-colors relative z-10 block w-fit focus:outline-none">{task.title}</button>
                                         </h3>
                                         {task.description && <p className="text-slate-600 dark:text-slate-400 mt-1 line-clamp-1">{task.description}</p>}
                                         <div className="flex flex-wrap items-center mt-3 gap-3 text-xs font-medium">
@@ -335,6 +345,16 @@ const TasksDashboard = () => {
                     </div>
                 </div>
             )}
+
+            {/* Slide-out Task Details Drawer */}
+            <TaskDetailsDrawer
+                taskId={selectedTaskId}
+                onClose={() => {
+                    setSelectedTaskId(null);
+                    // Refresh data if needed when closing the drawer
+                    dispatch(fetchTasks({ role, userId: user?.id }));
+                }}
+            />
         </div>
     );
 };

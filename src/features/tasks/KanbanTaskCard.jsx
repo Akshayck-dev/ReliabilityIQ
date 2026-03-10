@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Clock, User, GripVertical } from 'lucide-react';
 import PriorityBadge from '../../components/ui/PriorityBadge';
 
-const KanbanTaskCard = ({ task, role, onDragStart }) => {
+const KanbanTaskCard = ({ task, role, onDragStart, onTaskClick }) => {
     const handleDragStart = (e) => {
         e.dataTransfer.setData('text/plain', JSON.stringify({
             taskId: task.id,
@@ -30,13 +30,15 @@ const KanbanTaskCard = ({ task, role, onDragStart }) => {
                     <GripVertical size={14} />
                 </div>
 
-                <Link
-                    to={`/tasks/${task.id}`}
-                    className="text-sm font-semibold text-slate-900 dark:text-slate-100 hover:text-[#ea580c] dark:hover:text-orange-400 transition-colors line-clamp-2 block flex-1"
+                <button
+                    onClick={() => {
+                        if (onTaskClick) onTaskClick(task.id);
+                    }}
+                    className="text-sm font-semibold text-slate-900 dark:text-slate-100 hover:text-[#ea580c] dark:hover:text-orange-400 transition-colors line-clamp-2 text-left block flex-1 focus:outline-none"
                     draggable={false}
                 >
                     {task.title}
-                </Link>
+                </button>
             </div>
 
             {/* Description */}
