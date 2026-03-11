@@ -261,80 +261,114 @@ const AssignTask = () => {
     };
 
     return (
-        <div className="max-w-3xl mx-auto py-8">
+        <div className="max-w-6xl mx-auto py-8 lg:px-4">
             {/* Breadcrumbs & Header */}
-            <div className="mb-8">
-                <div className="text-[13px] font-semibold mb-3">
-                    <span className="text-slate-400 dark:text-slate-500">Tasks / </span>
-                    <span className="text-slate-700 dark:text-slate-300">New Task</span>
+            <div className="mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                <div>
+                    <div className="text-[13px] font-semibold mb-3 flex items-center gap-2">
+                        <span className="text-slate-400 dark:text-slate-500 hover:text-slate-600 transition-colors cursor-pointer" onClick={() => navigate('/dashboard')}>Dashboard</span>
+                        <span className="text-slate-300 dark:text-slate-600">/</span>
+                        <span className="text-slate-700 dark:text-slate-300">Assign Task</span>
+                    </div>
+                    <h1 className="text-3xl font-extrabold text-[#0f172a] dark:text-white tracking-tight">Assign New Task</h1>
+                    <p className="text-[14px] text-slate-500 dark:text-slate-400 mt-2 font-medium max-w-2xl">Create and delegate responsibilities clearly. Use our AI features to optimize the description and route the task to the most available team member.</p>
                 </div>
-                <h1 className="text-[28px] font-bold text-[#0f172a] dark:text-white tracking-tight">Assign New Task</h1>
-                <p className="text-[14px] text-slate-500 dark:text-slate-400 mt-1.5 font-medium">Delegate responsibilities and set clear expectations for your team members.</p>
             </div>
 
-            {/* Main Form Card */}
-            <Card className="p-8 mb-10 shadow-[0_1px_3px_rgba(0,0,0,0.05)] border border-slate-100/60 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900">
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    {/* Task Title */}
-                    <div>
-                        <label className="block text-[13px] font-bold text-slate-800 dark:text-slate-200 mb-2">Task Title</label>
-                        <input
-                            type="text"
-                            value={title}
-                            onChange={(e) => { setTitle(e.target.value); if (validationErrors.title) setValidationErrors({ ...validationErrors, title: null }); }}
-                            placeholder="e.g. Q4 System Infrastructure Audit"
-                            className={`w-full px-4 py-3 bg-[#f8fafc] dark:bg-slate-800/80 border ${validationErrors.title ? 'border-red-500 focus:ring-red-500' : 'border-slate-200 dark:border-slate-700 focus:ring-blue-500/20 focus:border-blue-500'} rounded-xl text-sm font-semibold text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-4 transition-all shadow-sm`}
-                        />
-                        {validationErrors.title && <p className="text-red-500 text-[11px] font-medium mt-1.5 flex items-center gap-1"><AlertCircle size={12} /> {validationErrors.title}</p>}
-                    </div>
-
-                    {/* Task Description */}
-                    <div>
-                        <label className="block text-[13px] font-bold text-slate-800 dark:text-slate-200 mb-2">Task Description</label>
-                        <textarea
-                            rows="4"
-                            value={description}
-                            onChange={(e) => { setDescription(e.target.value); if (validationErrors.description) setValidationErrors({ ...validationErrors, description: null }); }}
-                            placeholder="Provide detailed instructions or specific goals for this task..."
-                            className={`w-full px-4 py-3 bg-[#f8fafc] dark:bg-slate-800/80 border ${validationErrors.description ? 'border-red-500 focus:ring-red-500' : 'border-slate-200 dark:border-slate-700 focus:ring-blue-500/20 focus:border-blue-500'} rounded-xl text-sm font-medium text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-4 transition-all shadow-sm resize-none`}
-                        ></textarea>
-                        {validationErrors.description && <p className="text-red-500 text-[11px] font-medium mt-1.5 flex items-center gap-1"><AlertCircle size={12} /> {validationErrors.description}</p>}
-
-                        <div className="mt-3 flex justify-end">
-                            <button
-                                type="button"
-                                onClick={handleImproveAI}
-                                disabled={isImproving}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 rounded-lg transition-colors disabled:opacity-50"
-                            >
-                                {isImproving ? <Loader2 size={14} className="animate-spin text-indigo-600" /> : <Sparkles size={14} className="text-indigo-600" />}
-                                {isImproving ? 'Generating...' : 'Improve with AI'}
-                            </button>
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                
+                {/* LEFT COLUMN: Main Inputs (col-span-8) */}
+                <div className="lg:col-span-8 space-y-6">
+                    <Card className="p-6 sm:p-8 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] border border-slate-100 dark:border-slate-800/60 rounded-2xl bg-white dark:bg-slate-900/90 backdrop-blur-sm">
+                        
+                        {/* Task Title */}
+                        <div className="mb-6">
+                            <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-300 mb-2 tracking-wide uppercase">Task Title</label>
+                            <input
+                                type="text"
+                                value={title}
+                                onChange={(e) => { setTitle(e.target.value); if (validationErrors.title) setValidationErrors({ ...validationErrors, title: null }); }}
+                                placeholder="e.g., Q4 System Infrastructure Security Audit"
+                                className={`w-full px-4 py-3.5 bg-slate-50/50 dark:bg-slate-800/40 border ${validationErrors.title ? 'border-red-400 focus:ring-red-500/20' : 'border-slate-200/60 dark:border-slate-700/60 focus:ring-indigo-500/20 focus:border-indigo-500'} rounded-xl text-[15px] font-semibold text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:bg-white dark:focus:bg-slate-800 transition-all shadow-sm`}
+                            />
+                            {validationErrors.title && <p className="text-red-500 text-[12px] font-semibold mt-2 flex items-center gap-1.5"><AlertCircle size={14} /> {validationErrors.title}</p>}
                         </div>
-                    </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Assign To */}
-                        <div>
+                        {/* Task Description */}
+                        <div className="mb-6">
                             <div className="flex items-center justify-between mb-2">
-                                <label className="block text-[13px] font-bold text-slate-800 dark:text-slate-200">Assign To</label>
+                                <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-300 tracking-wide uppercase">Task Description</label>
+                                <button
+                                    type="button"
+                                    onClick={handleImproveAI}
+                                    disabled={isImproving}
+                                    className="group inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50/80 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 rounded-lg transition-all disabled:opacity-50 border border-indigo-100/50 dark:border-indigo-800/30"
+                                >
+                                    {isImproving ? <Loader2 size={14} className="animate-spin text-indigo-600" /> : <Sparkles size={14} className="text-indigo-600 group-hover:scale-110 transition-transform" />}
+                                    {isImproving ? 'Enhancing...' : 'AI Enhance'}
+                                </button>
+                            </div>
+                            <textarea
+                                rows="6"
+                                value={description}
+                                onChange={(e) => { setDescription(e.target.value); if (validationErrors.description) setValidationErrors({ ...validationErrors, description: null }); }}
+                                placeholder="Provide detailed instructions, acceptance criteria, or specific goals for this task..."
+                                className={`w-full px-4 py-3.5 bg-slate-50/50 dark:bg-slate-800/40 border ${validationErrors.description ? 'border-red-400 focus:ring-red-500/20' : 'border-slate-200/60 dark:border-slate-700/60 focus:ring-indigo-500/20 focus:border-indigo-500'} rounded-xl text-[14px] leading-relaxed text-slate-700 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:bg-white dark:focus:bg-slate-800 transition-all shadow-sm resize-y min-h-[120px]`}
+                            ></textarea>
+                            {validationErrors.description && <p className="text-red-500 text-[12px] font-semibold mt-2 flex items-center gap-1.5"><AlertCircle size={14} /> {validationErrors.description}</p>}
+                        </div>
+
+                        {/* Continuation Linker */}
+                        <div>
+                            <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-300 mb-2 tracking-wide uppercase">Continuation of <span className="text-slate-400 font-medium tracking-normal normal-case">(Optional)</span></label>
+                            <div className="relative">
+                                <select
+                                    value={parentTaskId}
+                                    onChange={(e) => setParentTaskId(e.target.value)}
+                                    className="w-full px-4 py-3.5 bg-slate-50/50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-700/60 rounded-xl text-[14px] font-medium text-slate-700 dark:text-slate-200 appearance-none focus:outline-none focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm cursor-pointer block focus:bg-white dark:focus:bg-slate-800"
+                                >
+                                    <option value="">Select an existing task to link...</option>
+                                    {existingTasks.map(task => (
+                                        <option key={task.id} value={task.id}>{task.title}</option>
+                                    ))}
+                                </select>
+                                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 pointer-events-none" />
+                            </div>
+                        </div>
+
+                    </Card>
+                </div>
+
+                {/* RIGHT COLUMN: Configuration & Workload (col-span-4) */}
+                <div className="lg:col-span-4 space-y-6">
+                    
+                    {/* Config Card */}
+                    <Card className="p-6 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] border border-slate-100 dark:border-slate-800/60 rounded-2xl bg-white dark:bg-slate-900/90 sticky top-8">
+                        
+                        {/* Assign To */}
+                        <div className="mb-6">
+                            <div className="flex items-center justify-between mb-2">
+                                <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-300 tracking-wide uppercase">Assignee</label>
                                 <button
                                     type="button"
                                     onClick={handleSmartAssign}
                                     disabled={isSmartAssigning}
-                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-bold text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/30 hover:bg-violet-100 dark:hover:bg-violet-900/50 rounded-lg transition-colors disabled:opacity-50"
+                                    className="relative overflow-hidden group inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-bold text-white rounded-lg transition-all disabled:opacity-70 shadow-[0_2px_10px_-3px_rgba(139,92,246,0.6)]"
                                 >
-                                    {isSmartAssigning ? <Loader2 size={12} className="animate-spin text-violet-600" /> : <UserCheck size={12} className="text-violet-600" />}
-                                    {isSmartAssigning ? 'Routing...' : 'Smart Assign'}
+                                    <div className="absolute inset-0 bg-gradient-to-r from-violet-500 via-fuchsia-500 to-violet-500 bg-[length:200%_auto] animate-gradient"></div>
+                                    <div className="relative flex items-center gap-1.5 z-10">
+                                        {isSmartAssigning ? <Loader2 size={12} className="animate-spin" /> : <UserCheck size={12} />}
+                                        {isSmartAssigning ? 'Routing...' : 'Smart Auto-Route'}
+                                    </div>
                                 </button>
                             </div>
                             <div className="relative">
                                 <select
                                     value={assignedTo}
                                     onChange={(e) => { setAssignedTo(e.target.value); if (validationErrors.assignedTo) setValidationErrors({ ...validationErrors, assignedTo: null }); }}
-                                    className={`w-full px-4 py-3 bg-[#f8fafc] dark:bg-slate-800/80 border ${validationErrors.assignedTo ? 'border-red-500 focus:ring-red-500' : 'border-slate-200 dark:border-slate-700 focus:ring-blue-500/20 focus:border-blue-500'} rounded-xl text-sm font-semibold text-slate-700 dark:text-slate-200 appearance-none focus:outline-none focus:ring-4 transition-all shadow-sm cursor-pointer block border-r-8 border-transparent`}
+                                    className={`w-full px-4 py-3.5 bg-slate-50/50 dark:bg-slate-800/40 border ${validationErrors.assignedTo ? 'border-red-400 focus:ring-red-500/20' : 'border-slate-200/60 dark:border-slate-700/60 focus:ring-indigo-500/20 focus:border-indigo-500'} rounded-xl text-[14px] font-semibold text-slate-800 dark:text-slate-100 appearance-none focus:outline-none focus:ring-4 focus:bg-white dark:focus:bg-slate-800 transition-all shadow-sm cursor-pointer block`}
                                 >
-                                    <option value="" disabled>Select an employee</option>
+                                    <option value="" disabled>Select team member</option>
                                     {employees.map(emp => {
                                         const activeCount = allEmployeeStats[emp.id] || 0;
                                         const isOverloaded = activeCount > 5;
@@ -350,135 +384,124 @@ const AssignTask = () => {
                                         );
                                     })}
                                 </select>
-                                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 h-[18px] w-[18px] text-slate-400 pointer-events-none" />
+                                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 pointer-events-none" />
                             </div>
-                            {validationErrors.assignedTo && <p className="text-red-500 text-[11px] font-medium mt-1.5 flex items-center gap-1"><AlertCircle size={12} /> {validationErrors.assignedTo}</p>}
+                            {validationErrors.assignedTo && <p className="text-red-500 text-[12px] font-semibold mt-2 flex items-center gap-1.5"><AlertCircle size={14} /> {validationErrors.assignedTo}</p>}
 
-                            {/* Live Workload Preview */}
+                            {/* User Preview Mini-Stat */}
                             {selectedEmployeeStats && (
-                                <div className="mt-3 p-3 bg-slate-50/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg flex items-center justify-between shadow-[inset_0_1px_2px_rgba(0,0,0,0.01)]">
-                                    <div className="text-center px-1">
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Active</p>
-                                        <p className="text-[13px] font-bold text-slate-700 dark:text-slate-200">{selectedEmployeeStats.active}</p>
+                                <div className="mt-3 p-3 bg-indigo-50/50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-800/30 rounded-xl flex items-center justify-between animate-in fade-in slide-in-from-top-2 duration-300">
+                                    <div className="text-center px-1 flex-1">
+                                        <p className="text-[10px] font-bold text-indigo-400/80 uppercase tracking-widest mb-0.5">Active</p>
+                                        <p className="text-[14px] font-extrabold text-indigo-900 dark:text-indigo-200">{selectedEmployeeStats.active}</p>
                                     </div>
-                                    <div className="w-px h-6 bg-slate-200 dark:bg-slate-700"></div>
-                                    <div className="text-center px-1">
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Overdue</p>
-                                        <p className={`text-[13px] font-bold ${selectedEmployeeStats.overdue > 0 ? 'text-red-600 dark:text-red-400' : 'text-slate-700 dark:text-slate-200'}`}>{selectedEmployeeStats.overdue}</p>
-                                    </div>
-                                    <div className="w-px h-6 bg-slate-200 dark:bg-slate-700"></div>
-                                    <div className="text-center px-1">
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Reliability</p>
-                                        <p className="text-[13px] font-bold text-emerald-600 dark:text-emerald-400">{selectedEmployeeStats.reliability}%</p>
+                                    <div className="w-px h-6 bg-indigo-200/50 dark:bg-indigo-800/50"></div>
+                                    <div className="text-center px-1 flex-1">
+                                        <p className="text-[10px] font-bold text-amber-500/80 uppercase tracking-widest mb-0.5">Overdue</p>
+                                        <p className={`text-[14px] font-extrabold ${selectedEmployeeStats.overdue > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-600 dark:text-slate-400'}`}>{selectedEmployeeStats.overdue}</p>
                                     </div>
                                 </div>
                             )}
                         </div>
 
                         {/* Deadline */}
-                        <div>
-                            <label className="block text-[13px] font-bold text-slate-800 dark:text-slate-200 mb-2">Deadline</label>
+                        <div className="mb-6">
+                            <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-300 mb-2 tracking-wide uppercase">Deadline</label>
                             <div className="relative">
-                                {/* The placeholder color behaves differently on datetime, utilizing custom styles to align with Figma */}
                                 <input
                                     type="date"
                                     value={deadline}
                                     onChange={(e) => { setDeadline(e.target.value); if (validationErrors.deadline) setValidationErrors({ ...validationErrors, deadline: null }); }}
-                                    className={`w-full px-4 py-3 bg-[#f8fafc] dark:bg-slate-800/80 border ${validationErrors.deadline ? 'border-red-500 focus:ring-red-500' : 'border-slate-200 dark:border-slate-700 focus:ring-blue-500/20 focus:border-blue-500'} rounded-xl text-sm font-semibold text-slate-700 dark:text-slate-200 appearance-none focus:outline-none focus:ring-4 transition-all shadow-sm cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:w-full`}
+                                    className={`w-full px-4 py-3.5 bg-slate-50/50 dark:bg-slate-800/40 border ${validationErrors.deadline ? 'border-red-400 focus:ring-red-500/20' : 'border-slate-200/60 dark:border-slate-700/60 focus:ring-indigo-500/20 focus:border-indigo-500'} rounded-xl text-[14px] font-semibold text-slate-800 dark:text-slate-100 appearance-none focus:outline-none focus:ring-4 focus:bg-white dark:focus:bg-slate-800 transition-all shadow-sm cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer`}
                                 />
-                                <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 h-[18px] w-[18px] text-slate-900 dark:text-slate-400 pointer-events-none" />
+                                <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 pointer-events-none" />
                             </div>
-                            {validationErrors.deadline && <p className="text-red-500 text-[11px] font-medium mt-1.5 flex items-center gap-1"><AlertCircle size={12} /> {validationErrors.deadline}</p>}
+                            {validationErrors.deadline && <p className="text-red-500 text-[12px] font-semibold mt-2 flex items-center gap-1.5"><AlertCircle size={14} /> {validationErrors.deadline}</p>}
                         </div>
-                    </div>
 
-                    {/* Priority Level */}
-                    <div>
-                        <label className="block text-[13px] font-bold text-slate-800 dark:text-slate-200 mb-2">Priority Level</label>
-                        <div className="flex bg-[#f8fafc] dark:bg-slate-800 p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 gap-1.5">
-                            {[
-                                { level: 'Low', icon: ArrowDownRight, activeColor: 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800', inactiveColor: 'text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50/50 dark:hover:bg-emerald-900/20' },
-                                { level: 'Medium', icon: Minus, activeColor: 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800', inactiveColor: 'text-slate-500 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50/50 dark:hover:bg-amber-900/20' },
-                                { level: 'High', icon: ArrowUpRight, activeColor: 'bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-800', inactiveColor: 'text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50/50 dark:hover:bg-rose-900/20' }
-                            ].map(({ level, activeColor, inactiveColor }) => {
-                                const Icon = level === 'Low' ? ArrowDownRight : level === 'Medium' ? Minus : ArrowUpRight;
-                                return (
-                                    <button
-                                        key={level}
-                                        type="button"
-                                        onClick={() => setPriority(level)}
-                                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-[13px] font-bold rounded-md transition-all border ${priority === level
-                                            ? `${activeColor} shadow-sm`
-                                            : `border-transparent ${inactiveColor}`
-                                            }`}
-                                    >
-                                        <Icon size={16} strokeWidth={priority === level ? 2.5 : 2} />
-                                        {level}
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
-
-                    {/* Continuation Linker */}
-                    <div>
-                        <label className="block text-[13px] font-bold text-slate-800 dark:text-slate-200 mb-2">Continuation of... <span className="text-slate-400 font-normal">(Optional)</span></label>
-                        <div className="relative">
-                            <select
-                                value={parentTaskId}
-                                onChange={(e) => setParentTaskId(e.target.value)}
-                                className="w-full px-4 py-3 bg-[#f8fafc] dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-700 dark:text-slate-200 appearance-none focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm cursor-pointer block border-r-8 border-transparent"
-                            >
-                                <option value="">Select an existing task to link...</option>
-                                {existingTasks.map(task => (
-                                    <option key={task.id} value={task.id}>{task.title}</option>
-                                ))}
-                            </select>
-                            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 h-[18px] w-[18px] text-slate-400 pointer-events-none" />
-                        </div>
-                    </div>
-
-                    {/* Buttons */}
-                    <div className="pt-4 flex gap-4">
-                        <button type="button" onClick={() => navigate('/dashboard')} className="flex-1 py-3 px-4 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-[#0f172a] dark:text-white bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm focus:ring-4 focus:ring-slate-500/10">
-                            Cancel
-                        </button>
-                        <button disabled={isSubmitting} type="submit" className="flex-1 py-3 px-4 border border-transparent rounded-xl text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-sm transition-all focus:ring-4 focus:ring-blue-500/20 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed">
-                            {isSubmitting ? (
-                                <>
-                                    Assigning...
-                                    <Loader2 size={16} className="animate-spin text-white" />
-                                </>
-                            ) : (
-                                <>
-                                    Assign Task
-                                    <Send size={16} className="text-white fill-white" />
-                                </>
-                            )}
-                        </button>
-                    </div>
-                </form>
-            </Card>
-
-            {/* Current Team Workload Section */}
-            {teamWorkload.length > 0 && (
-                <div>
-                    <h3 className="text-[11px] font-bold text-slate-500 tracking-wider uppercase mb-4 text-center sm:text-left">CURRENT TEAM WORKLOAD</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        {teamWorkload.map((member) => (
-                            <div key={member.id} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-3 rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.03)] flex items-center gap-3">
-                                <div className="h-10 w-10 rounded-full bg-slate-800 text-white flex items-center justify-center font-bold text-xs shrink-0 bg-cover bg-center overflow-hidden border border-slate-200 dark:border-slate-700 relative">
-                                    {member.avatar}
-                                </div>
-                                <div>
-                                    <h4 className="text-[13px] font-bold text-[#0f172a] dark:text-white truncate max-w-[120px]">{member.name}</h4>
-                                    <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">{member.tasks} Active Task{member.tasks !== 1 ? 's' : ''}</p>
-                                </div>
+                        {/* Priority Level */}
+                        <div className="mb-8">
+                            <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-300 mb-2 tracking-wide uppercase">Priority Level</label>
+                            <div className="flex bg-slate-100/80 dark:bg-slate-800/50 p-1.5 rounded-xl border border-slate-200/50 dark:border-slate-700/50 gap-1.5">
+                                {[
+                                    { level: 'Low', icon: ArrowDownRight, activeColor: 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-[0_1px_3px_rgba(0,0,0,0.05)] border border-slate-200 dark:border-slate-700/50', inactiveColor: 'text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 border border-transparent' },
+                                    { level: 'Medium', icon: Minus, activeColor: 'bg-white dark:bg-slate-800 text-amber-600 dark:text-amber-400 shadow-[0_1px_3px_rgba(0,0,0,0.05)] border border-slate-200 dark:border-slate-700/50', inactiveColor: 'text-slate-500 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 border border-transparent' },
+                                    { level: 'High', icon: ArrowUpRight, activeColor: 'bg-white dark:bg-slate-800 text-rose-600 dark:text-rose-400 shadow-[0_1px_3px_rgba(0,0,0,0.05)] border border-slate-200 dark:border-slate-700/50', inactiveColor: 'text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 border border-transparent' }
+                                ].map(({ level, activeColor, inactiveColor }) => {
+                                    const Icon = level === 'Low' ? ArrowDownRight : level === 'Medium' ? Minus : ArrowUpRight;
+                                    return (
+                                        <button
+                                            key={level}
+                                            type="button"
+                                            onClick={() => setPriority(level)}
+                                            className={`flex-1 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 py-2 px-1 text-[13px] font-bold rounded-lg transition-all ${priority === level ? activeColor : inactiveColor}`}
+                                        >
+                                            <Icon size={16} strokeWidth={priority === level ? 2.5 : 2} />
+                                            {level}
+                                        </button>
+                                    );
+                                })}
                             </div>
-                        ))}
-                    </div>
+                        </div>
+
+                        {/* Submit Actions */}
+                        <div className="pt-2 border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row gap-3">
+                            <button disabled={isSubmitting} type="submit" className="flex-1 py-3.5 px-4 rounded-xl text-[14px] font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-[0_4px_14px_0_rgba(37,99,235,0.39)] hover:shadow-[0_6px_20px_rgba(37,99,235,0.23)] transition-all focus:ring-4 focus:ring-blue-500/20 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed transform hover:-translate-y-0.5 w-full">
+                                {isSubmitting ? (
+                                    <>
+                                        <Loader2 size={16} className="animate-spin text-white" />
+                                        Processing...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Send size={16} className="text-white fill-white/80" />
+                                        Launch Task
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </Card>
+
+                    {/* Team Workload Sidebar */}
+                    {teamWorkload.length > 0 && (
+                        <Card className="p-6 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] border border-slate-100 dark:border-slate-800/60 rounded-2xl bg-white dark:bg-slate-900/90 hidden lg:block">
+                            <div className="flex items-center justify-between mb-5">
+                                <h3 className="text-[12px] font-bold text-slate-500 dark:text-slate-400 tracking-wider uppercase">Team Capacity</h3>
+                            </div>
+                            <div className="space-y-4">
+                                {teamWorkload.map((member) => {
+                                    // Calculate progress bar width (max out visually at 10 tasks)
+                                    const fillPercent = Math.min((member.tasks / 10) * 100, 100);
+                                    const isHigh = member.tasks > 5;
+                                    
+                                    return (
+                                        <div key={member.id} className="group">
+                                            <div className="flex items-center justify-between mb-1.5">
+                                                <div className="flex items-center gap-2.5">
+                                                    <div className="h-6 w-6 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center font-bold text-[10px] shrink-0">
+                                                        {member.avatar}
+                                                    </div>
+                                                    <span className="text-[13px] font-bold text-[#0f172a] dark:text-white truncate max-w-[100px]">{member.name}</span>
+                                                </div>
+                                                <span className={`text-[12px] font-bold ${isHigh ? 'text-rose-500' : 'text-slate-500 dark:text-slate-400'}`}>
+                                                    {member.tasks} <span className="font-medium text-[10px] uppercase text-slate-400">tasks</span>
+                                                </span>
+                                            </div>
+                                            <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                                                <div 
+                                                    className={`h-full rounded-full transition-all duration-500 ease-out ${isHigh ? 'bg-rose-500' : 'bg-blue-500 group-hover:bg-blue-400'}`} 
+                                                    style={{ width: `${fillPercent}%` }}
+                                                ></div>
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </Card>
+                    )}
                 </div>
-            )}
+            </form>
+
 
             {/* AI Preview Modal */}
             {aiPreview.show && (
