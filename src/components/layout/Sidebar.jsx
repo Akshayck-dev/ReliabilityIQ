@@ -26,7 +26,7 @@ const Sidebar = () => {
 
     return (
         <aside className="w-[100px] h-full bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col justify-between py-6 shrink-0 z-10 transition-colors duration-200">
-            <nav className="flex flex-col gap-2 relative z-10">
+            <nav id="tour-sidebar" className="flex-1 px-3 py-4 space-y-1 overflow-y-auto custom-scrollbar">
                 {visibleNavItems.map((item) => {
                     const Icon = item.icon;
                     return (

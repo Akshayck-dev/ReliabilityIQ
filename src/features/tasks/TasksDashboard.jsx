@@ -163,6 +163,7 @@ const TasksDashboard = () => {
             {activeTab === 'active' && viewMode === 'kanban' && (
                 <KanbanBoard
                     tasks={tasks}
+                    dataStatus={status}
                     onStatusChange={handleStatusChange}
                     role={role}
                     onTaskClick={(id) => setSelectedTaskId(id)}

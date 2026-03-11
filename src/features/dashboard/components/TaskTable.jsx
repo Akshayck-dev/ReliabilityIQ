@@ -1,23 +1,49 @@
 import React from 'react';
 import Card from '../../../components/ui/Card';
-import Badge from '../../../components/ui/Badge';
 import { TableTaskRowSkeleton } from '../../../components/ui/Skeleton';
 import EmptyState from '../../../components/ui/EmptyState';
 import { Users } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const TaskTable = ({ employees = [], loading = false }) => {
+    const navigate = useNavigate();
 
-    // Badge styling override to match image (pill with outline)
     const renderStatusBadge = (status) => {
         const isGood = status === 'Good';
         const styles = isGood
-            ? 'bg-green-50 text-green-700 border-green-300'
-            : 'bg-amber-50 text-amber-700 border-amber-300';
+            ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border-green-300 dark:border-green-800'
+            : 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-800';
 
         return (
             <span className={`px-3 py-0.5 rounded-full text-xs font-medium border ${styles}`}>
                 {status}
             </span>
+        );
+    };
+
+    const renderReliability = (value) => {
+        const num = parseFloat(value) || 0;
+        const barColor = num >= 80
+            ? 'bg-green-500'
+            : num >= 60
+                ? 'bg-amber-500'
+                : 'bg-red-500';
+        const textColor = num >= 80
+            ? 'text-green-700 dark:text-green-400'
+            : num >= 60
+                ? 'text-amber-600 dark:text-amber-400'
+                : 'text-red-600 dark:text-red-400';
+
+        return (
+            <div className="flex items-center gap-2.5">
+                <div className="w-20 h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden shrink-0">
+                    <div
+                        className={`h-full rounded-full transition-all duration-500 ${barColor}`}
+                        style={{ width: `${Math.min(num, 100)}%` }}
+                    />
+                </div>
+                <span className={`text-sm font-bold tabular-nums ${textColor}`}>{value}</span>
+            </div>
         );
     };
 
@@ -58,11 +84,17 @@ const TaskTable = ({ employees = [], loading = false }) => {
                             </tr>
                         ) : (
                             employees.map((emp) => (
-                                <tr key={emp.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                    <td className="px-5 py-4 font-medium text-slate-900 dark:text-slate-100">{emp.name}</td>
+                                <tr
+                                    key={emp.id}
+                                    onClick={() => navigate(`/employees/${emp.id}`)}
+                                    className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group"
+                                >
+                                    <td className="px-5 py-4 font-semibold text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                        {emp.name}
+                                    </td>
                                     <td className="px-5 py-4">{emp.assigned}</td>
                                     <td className="px-5 py-4">{emp.completed}</td>
-                                    <td className="px-5 py-4">{emp.reliability}</td>
+                                    <td className="px-5 py-4">{renderReliability(emp.reliability)}</td>
                                     <td className="px-5 py-4">
                                         {renderStatusBadge(emp.status)}
                                     </td>

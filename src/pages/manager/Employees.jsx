@@ -167,10 +167,10 @@ const Employees = () => {
                 </div>
                 <button
                     onClick={openAssignModal}
-                    className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors shadow-sm"
+                    className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-sm focus:ring-4 focus:ring-blue-500/20"
                 >
                     <UserPlus size={16} />
-                    + Add Employees
+                    Add Employees
                 </button>
             </div>
 
@@ -226,7 +226,7 @@ const Employees = () => {
                             <p className="text-sm text-slate-500 dark:text-slate-400 mb-5">Assign employees to start managing your team.</p>
                             <button
                                 onClick={openAssignModal}
-                                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-bold transition-colors shadow-sm"
+                                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl text-sm font-bold transition-all shadow-sm focus:ring-4 focus:ring-blue-500/20"
                             >
                                 <UserPlus size={18} /> Add Employees
                             </button>
@@ -423,11 +423,11 @@ const AssignModal = ({ employees, loading, assigningId, onAssign, onClose, onInv
                                 <span className="font-semibold text-slate-900 dark:text-white">Permissions:</span> {successInfo.permissions}
                             </p>
                         </div>
-                        <div className="flex items-center gap-4 w-full">
-                            <button onClick={handleDone} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg text-sm font-bold transition-colors shadow-sm">
+                        <div className="flex items-center gap-4 w-full mt-4">
+                            <button onClick={handleDone} className="flex-1 bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-500/20 text-white py-2.5 rounded-xl text-sm font-bold transition-all shadow-sm">
                                 Done
                             </button>
-                            <button onClick={handleInviteAnother} className="flex-1 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 py-2.5 text-sm font-semibold transition-colors">
+                            <button onClick={handleInviteAnother} className="flex-1 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 py-2.5 rounded-xl text-sm font-bold transition-colors border border-slate-200 dark:border-slate-700">
                                 Invite Another
                             </button>
                         </div>
@@ -458,7 +458,7 @@ const AssignModal = ({ employees, loading, assigningId, onAssign, onClose, onInv
                             placeholder="Search employees..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                            className="w-full pl-9 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all font-medium"
                         />
                     </div>
                 </div>
@@ -498,7 +498,7 @@ const AssignModal = ({ employees, loading, assigningId, onAssign, onClose, onInv
                                     <button
                                         onClick={() => handleAssignAndShowSuccess(emp)}
                                         disabled={assigningId === emp.id}
-                                        className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[12px] font-bold bg-blue-600 hover:bg-blue-700 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[12px] font-bold bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-500/20 text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                                     >
                                         {assigningId === emp.id ? <Loader2 size={14} className="animate-spin" /> : <UserCheck size={14} />}
                                         {assigningId === emp.id ? 'Adding...' : 'Add to Team'}

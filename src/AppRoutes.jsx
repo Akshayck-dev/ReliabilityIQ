@@ -21,6 +21,7 @@ import Profile from './pages/shared/Profile';
 import Settings from './pages/shared/Settings';
 import NotFound from './pages/shared/NotFound';
 import { useAuth } from './features/auth/AuthContext';
+import OnboardingTour from './components/ui/OnboardingTour';
 
 const AppRoutes = () => {
     const { role } = useAuth();
@@ -35,7 +36,12 @@ const AppRoutes = () => {
 
             {/* Requires valid session AND a completed role (handled by the intercept above) */}
             <Route element={<ProtectedRoute />}>
-                <Route element={<Layout />}>
+                <Route element={
+                    <>
+                        <OnboardingTour />
+                        <Layout />
+                    </>
+                }>
                     <Route path="/" element={<Navigate to="/dashboard" replace />} />
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/tasks" element={role === 'employee' ? <MyTasks /> : <TasksDashboard />} />

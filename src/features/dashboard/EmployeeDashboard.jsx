@@ -98,18 +98,17 @@ const EmployeeDashboard = () => {
 
     if (error) {
         return (
-            <div className="flex flex-col items-center justify-center p-8 bg-white border border-red-100 rounded-xl max-w-lg mx-auto mt-12 shadow-sm text-center">
-                <div className="w-12 h-12 bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-4">
+            <div className="flex flex-col items-center justify-center p-8 bg-white dark:bg-slate-900 border border-red-100 dark:border-red-900 rounded-xl max-w-lg mx-auto mt-12 shadow-sm text-center">
+                <div className="w-12 h-12 bg-red-50 dark:bg-red-900/30 text-red-500 rounded-full flex items-center justify-center mb-4">
                     <AlertCircle size={24} />
                 </div>
-                <h3 className="text-lg font-bold text-slate-900 mb-2">Failed to load data</h3>
-                <p className="text-slate-500 text-sm mb-6 max-w-sm">{error}</p>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Failed to load data</h3>
+                <p className="text-slate-500 dark:text-slate-400 text-sm mb-6 max-w-sm">{error}</p>
                 <button
                     onClick={fetchMyTasks}
-                    className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors"
+                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900"
                 >
-                    <RefreshCw size={16} />
-                    Retry
+                    <RefreshCw size={16} /> Retry
                 </button>
             </div>
         );
@@ -121,43 +120,36 @@ const EmployeeDashboard = () => {
             {/* Header */}
             <div className="flex justify-between items-center mb-8">
                 <div>
-                    <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">My Dashboard</h1>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Overview of your personal performance and upcoming work.</p>
+                    <h1 className="text-[26px] font-bold text-slate-900 dark:text-white tracking-tight">My Dashboard</h1>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Overview of your personal performance and upcoming work.</p>
                 </div>
             </div>
 
-            {/* Slide-Down Banner for Overdue / Due Today Tasks */}
-            {(metrics.overdueCount > 0 || dueCounts.dueToday > 0) && (
-                <div className={`mb-8 p-4 ${metrics.overdueCount > 0 ? 'bg-red-50/80 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 'bg-amber-50/80 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800'} border rounded-xl flex items-center justify-between animate-in slide-in-from-top-4 fade-in duration-500 shadow-sm`}>
-                    <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-full ${metrics.overdueCount > 0 ? 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400' : 'bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400'} flex items-center justify-center shrink-0`}>
-                            <AlertCircle size={20} />
-                        </div>
-                        <div>
-                            <h3 className={`text-sm font-bold ${metrics.overdueCount > 0 ? 'text-red-900 dark:text-red-300' : 'text-amber-900 dark:text-amber-300'}`}>Action Required</h3>
-                            <p className={`text-sm ${metrics.overdueCount > 0 ? 'text-red-700 dark:text-red-400' : 'text-amber-700 dark:text-amber-400'}`}>
-                                {metrics.overdueCount > 0 && (
-                                    <><strong className="font-bold">{metrics.overdueCount} overdue task{metrics.overdueCount > 1 ? 's' : ''}</strong> need immediate attention. </>
-                                )}
-                                {dueCounts.dueToday > 0 && (
-                                    <><strong className="font-bold">{dueCounts.dueToday} task{dueCounts.dueToday > 1 ? 's' : ''}</strong> due today.</>
-                                )}
-                            </p>
-                        </div>
+            {/* Urgent Alert Banner */}
+            {!loading && (metrics.overdueCount > 0 || dueCounts.dueToday > 0) && (
+                <div className={`mb-6 px-4 py-3.5 rounded-xl border flex items-center gap-3 animate-fade-in ${
+                    metrics.overdueCount > 0
+                        ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
+                        : 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800'
+                }`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                        metrics.overdueCount > 0 ? 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400' : 'bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400'
+                    }`}>
+                        <AlertCircle size={16} />
                     </div>
+                    <p className={`text-sm font-medium ${
+                        metrics.overdueCount > 0 ? 'text-red-700 dark:text-red-300' : 'text-amber-700 dark:text-amber-300'
+                    }`}>
+                        {metrics.overdueCount > 0 && <><strong>{metrics.overdueCount} overdue task{metrics.overdueCount > 1 ? 's' : ''}</strong> require immediate attention. </>}
+                        {dueCounts.dueToday > 0 && <><strong>{dueCounts.dueToday} task{dueCounts.dueToday > 1 ? 's' : ''}</strong> due today.</> }
+                    </p>
                 </div>
             )}
 
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+            {/* Row 1: Core metrics */}
+            <div className="grid grid-cols-3 gap-4 mb-4">
                 {loading ? (
-                    <>
-                        <StatCardSkeleton />
-                        <StatCardSkeleton />
-                        <StatCardSkeleton />
-                        <StatCardSkeleton />
-                        <StatCardSkeleton />
-                        <StatCardSkeleton />
-                    </>
+                    <><StatCardSkeleton /><StatCardSkeleton /><StatCardSkeleton /></>
                 ) : (
                     <>
                         <StatCard
@@ -165,8 +157,8 @@ const EmployeeDashboard = () => {
                             value={metrics.totalAssigned}
                             icon={ClipboardList}
                             trend="Total tasks ever assigned"
-                            iconBg="bg-blue-50"
-                            iconColor="text-blue-600"
+                            iconBg="bg-blue-50 dark:bg-blue-900/30"
+                            iconColor="text-blue-600 dark:text-blue-400"
                         />
                         <StatCard
                             title="Completed Tasks"
@@ -174,18 +166,28 @@ const EmployeeDashboard = () => {
                             icon={CheckCircle2}
                             trend="Tasks thoroughly finished"
                             progress={metrics.totalAssigned > 0 ? (metrics.completedCount / metrics.totalAssigned) * 100 : 0}
-                            progressText={`Completed tasks: ${metrics.completedCount} / ${metrics.totalAssigned}`}
+                            progressText={`${metrics.completedCount} of ${metrics.totalAssigned} tasks`}
                             iconBg="bg-emerald-50 dark:bg-emerald-900/30"
                             iconColor="text-emerald-600 dark:text-emerald-400"
                         />
                         <StatCard
-                            title="Pending Tasks"
-                            value={metrics.pendingCount}
-                            icon={Clock}
-                            trend="Tasks waiting on you"
-                            iconBg="bg-orange-50 dark:bg-orange-900/30"
-                            iconColor="text-[#ea580c] dark:text-orange-400"
+                            title="My Reliability Score"
+                            value={`${metrics.reliability}%`}
+                            icon={Percent}
+                            trend="On-time completion rate"
+                            iconBg="bg-indigo-50 dark:bg-indigo-900/30"
+                            iconColor="text-indigo-600 dark:text-indigo-400"
                         />
+                    </>
+                )}
+            </div>
+
+            {/* Row 2: Urgency metrics */}
+            <div className="grid grid-cols-3 gap-4 mb-8">
+                {loading ? (
+                    <><StatCardSkeleton /><StatCardSkeleton /><StatCardSkeleton /></>
+                ) : (
+                    <>
                         <StatCard
                             title="Overdue"
                             value={dueCounts.overdue}
@@ -203,12 +205,12 @@ const EmployeeDashboard = () => {
                             iconColor="text-amber-600 dark:text-amber-400"
                         />
                         <StatCard
-                            title="My Reliability Score"
-                            value={`${metrics.reliability}%`}
-                            icon={Percent}
-                            trend="On-time completion rate"
-                            iconBg="bg-indigo-50 dark:bg-indigo-900/30"
-                            iconColor="text-indigo-600 dark:text-indigo-400"
+                            title="Pending Tasks"
+                            value={metrics.pendingCount}
+                            icon={Clock}
+                            trend="Tasks waiting on you"
+                            iconBg="bg-slate-100 dark:bg-slate-800"
+                            iconColor="text-slate-600 dark:text-slate-300"
                         />
                     </>
                 )}

@@ -34,7 +34,7 @@ const KanbanTaskCard = ({ task, role, onDragStart, onTaskClick }) => {
                     onClick={() => {
                         if (onTaskClick) onTaskClick(task.id);
                     }}
-                    className="text-sm font-semibold text-slate-900 dark:text-slate-100 hover:text-[#ea580c] dark:hover:text-orange-400 transition-colors line-clamp-2 text-left block flex-1 focus:outline-none"
+                    className="text-sm font-semibold text-slate-900 dark:text-slate-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors line-clamp-2 text-left block flex-1 focus:outline-none"
                     draggable={false}
                 >
                     {task.title}
@@ -63,8 +63,10 @@ const KanbanTaskCard = ({ task, role, onDragStart, onTaskClick }) => {
             {/* Assignee (Manager View) */}
             {role === 'manager' && task.assignee && (
                 <div className="flex items-center gap-1.5 mt-3 pt-3 ml-7 border-t border-slate-100 dark:border-slate-700">
-                    <div className="w-5 h-5 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
-                        <User size={10} className="text-white" />
+                    <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center shrink-0">
+                        <span className="text-white font-bold" style={{fontSize: '9px'}}>
+                            {(task.assignee?.full_name || task.assignee?.email || 'U')[0].toUpperCase()}
+                        </span>
                     </div>
                     <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">
                         {task.assignee?.full_name || task.assignee?.email?.split('@')[0] || 'Unassigned'}

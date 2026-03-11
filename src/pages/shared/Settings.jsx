@@ -148,6 +148,18 @@ const Settings = () => {
 
                 {/* ─── Account ─── */}
                 <SectionCard title="Account">
+                {/* Avatar Preview */}
+                    <div className="flex items-center gap-4 mb-6 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
+                        <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white text-xl font-bold shadow-md shrink-0">
+                            {(name || user?.email || 'U')[0].toUpperCase()}
+                        </div>
+                        <div>
+                            <p className="text-sm font-bold text-slate-900 dark:text-white">{name || 'Your Name'}</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{user?.email}</p>
+                            <span className="inline-block mt-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800">{role}</span>
+                        </div>
+                    </div>
+
                     {/* Name */}
                     <div className="mb-5">
                         <label className="block text-[13px] font-bold text-slate-800 dark:text-slate-200 mb-2">Display Name</label>
@@ -167,7 +179,7 @@ const Settings = () => {
                             <button
                                 onClick={handleSaveName}
                                 disabled={!hasNameChanged || !isNameValid || isSaving}
-                                className="shrink-0 bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 dark:hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                className="shrink-0 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 focus:ring-4 focus:ring-blue-500/20"
                             >
                                 {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
                                 Save

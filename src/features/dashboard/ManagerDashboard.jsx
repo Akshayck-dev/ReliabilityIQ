@@ -17,7 +17,8 @@ import {
     AlertCircle,
     Clock,
     AlertTriangle,
-    RefreshCw
+    RefreshCw,
+    TrendingUp
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { startOfWeek, startOfMonth, startOfQuarter, isAfter } from 'date-fns';
@@ -69,19 +70,13 @@ const ManagerDashboard = () => {
         }
     }, [user?.id]);
 
-    useEffect(() => {
-        fetchStats();
-    }, [fetchStats]);
+    useEffect(() => { fetchStats(); }, [fetchStats]);
 
-    // Due date alerts with 60s auto-refresh
     const dueCounts = useDueDateAlerts(tasks, user?.id, fetchStats);
 
-    // Close filter dropdown on outside click
     useEffect(() => {
         const handleClickOutside = (e) => {
-            if (filterRef.current && !filterRef.current.contains(e.target)) {
-                setShowFilterMenu(false);
-            }
+            if (filterRef.current && !filterRef.current.contains(e.target)) setShowFilterMenu(false);
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -89,24 +84,22 @@ const ManagerDashboard = () => {
 
     if (error) {
         return (
-            <div className="flex flex-col items-center justify-center p-8 bg-white border border-red-100 rounded-xl max-w-lg mx-auto mt-12 shadow-sm text-center">
-                <div className="w-12 h-12 bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-4">
+            <div className="flex flex-col items-center justify-center p-8 bg-white dark:bg-slate-900 border border-red-100 dark:border-red-900 rounded-xl max-w-lg mx-auto mt-12 shadow-sm text-center">
+                <div className="w-12 h-12 bg-red-50 dark:bg-red-900/30 text-red-500 rounded-full flex items-center justify-center mb-4">
                     <AlertCircle size={24} />
                 </div>
-                <h3 className="text-lg font-bold text-slate-900 mb-2">Failed to load data</h3>
-                <p className="text-slate-500 text-sm mb-6 max-w-sm">{error}</p>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Failed to load data</h3>
+                <p className="text-slate-500 dark:text-slate-400 text-sm mb-6 max-w-sm">{error}</p>
                 <button
                     onClick={fetchStats}
-                    className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors focus:ring-4 focus:ring-slate-100"
+                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900"
                 >
-                    <RefreshCw size={16} />
-                    Retry
+                    <RefreshCw size={16} /> Retry
                 </button>
             </div>
         );
     }
 
-    // Filter tasks by time range
     const filterStart = getFilterStartDate(timeFilter);
     const filteredTasks = filterStart
         ? tasks.filter(t => {
@@ -116,56 +109,53 @@ const ManagerDashboard = () => {
         : tasks;
 
     const activeLabel = FILTER_OPTIONS.find(o => o.key === timeFilter)?.label || 'This Month';
-
-    // Calculate aggregated metrics based on filtered tasks
     const totalTasks = filteredTasks.length;
     const completedTasksCount = filteredTasks.filter(t => t.status === 'completed').length;
-
     const totalAssigned = stats.reduce((sum, s) => sum + s.totalAssigned, 0);
     const completedOnTime = stats.reduce((sum, s) => sum + s.onTime, 0);
     const overallReliability = totalAssigned > 0 ? ((completedOnTime / totalAssigned) * 100).toFixed(1) : '0.0';
+    const hasUrgent = dueCounts.overdue > 0 || dueCounts.dueToday > 0;
 
-    const tableEmployees = stats
-        .map(s => ({
-            id: s.id,
-            name: s.name || s.email?.split('@')[0] || 'Unknown User',
-            assigned: s.totalAssigned || 0,
-            completed: s.completed || 0,
-            reliability: `${s.reliability || 0}%`,
-            status: s.reliability >= 80 ? 'Good' : s.reliability >= 50 ? 'Moderate' : 'Poor'
-        }));
+    const tableEmployees = stats.map(s => ({
+        id: s.id,
+        name: s.name || s.email?.split('@')[0] || 'Unknown User',
+        assigned: s.totalAssigned || 0,
+        completed: s.completed || 0,
+        reliability: `${s.reliability || 0}%`,
+        status: s.reliability >= 80 ? 'Good' : s.reliability >= 50 ? 'Moderate' : 'Poor'
+    }));
 
     return (
-        <div className="flex flex-col h-full min-h-screen">
-            {/* Header Area */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-                <h1 className="text-[26px] font-bold text-slate-900 dark:text-white tracking-tight">Team Analytics</h1>
+        <div className="flex flex-col h-full min-h-screen animate-fade-in">
+
+            {/* ── Page Header ──────────────────────────────────────────── */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+                <div>
+                    <h1 className="text-[26px] font-bold text-slate-900 dark:text-white tracking-tight">Team Analytics</h1>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Monitor your team's performance and reliability.</p>
+                </div>
 
                 <div className="flex items-center gap-3">
-                    {/* Time Filter Dropdown */}
+                    {/* Time Filter */}
                     <div className="relative" ref={filterRef}>
                         <button
                             onClick={() => setShowFilterMenu(!showFilterMenu)}
                             className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
                         >
-                            <Calendar size={18} className="text-slate-500 dark:text-slate-400" />
+                            <Calendar size={16} className="text-slate-400" />
                             {activeLabel}
-                            <ChevronDown size={16} className={`text-slate-400 ml-1 transition-transform ${showFilterMenu ? 'rotate-180' : ''}`} />
+                            <ChevronDown size={14} className={`text-slate-400 transition-transform ${showFilterMenu ? 'rotate-180' : ''}`} />
                         </button>
-
                         {showFilterMenu && (
                             <div className="absolute right-0 mt-2 w-44 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden z-50 animate-fade-in">
                                 {FILTER_OPTIONS.map(opt => (
                                     <button
                                         key={opt.key}
-                                        onClick={() => {
-                                            setTimeFilter(opt.key);
-                                            setShowFilterMenu(false);
-                                        }}
+                                        onClick={() => { setTimeFilter(opt.key); setShowFilterMenu(false); }}
                                         className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors ${timeFilter === opt.key
-                                            ? 'bg-[#ea580c]/10 text-[#ea580c] dark:bg-orange-900/30 dark:text-orange-400 font-bold'
+                                            ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-bold'
                                             : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
-                                            }`}
+                                        }`}
                                     >
                                         {opt.label}
                                     </button>
@@ -174,104 +164,122 @@ const ManagerDashboard = () => {
                         )}
                     </div>
 
-                    {/* Add Task Button */}
-                    <Link to="/assign-task" className="flex items-center gap-2 bg-[#fbbd23] hover:bg-[#f5b011] text-[#785601] px-5 py-2.5 rounded-xl text-sm font-bold transition-colors shadow-sm">
-                        <Plus size={18} />
-                        Add Task
+                    {/* Add Task — brand blue, not orange */}
+                    <Link
+                        id="tour-add-task"
+                        to="/assign-task"
+                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-colors shadow-sm"
+                    >
+                        <Plus size={16} /> Add Task
                     </Link>
                 </div>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
+            {/* ── Urgent Alert Banner ───────────────────────────────────── */}
+            {!loading && hasUrgent && (
+                <div className={`mb-6 px-4 py-3.5 rounded-xl border flex items-center gap-3 animate-fade-in ${dueCounts.overdue > 0
+                    ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
+                    : 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800'
+                }`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${dueCounts.overdue > 0 ? 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400' : 'bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400'}`}>
+                        <AlertCircle size={16} />
+                    </div>
+                    <p className={`text-sm font-medium ${dueCounts.overdue > 0 ? 'text-red-700 dark:text-red-300' : 'text-amber-700 dark:text-amber-300'}`}>
+                        {dueCounts.overdue > 0 && <><strong>{dueCounts.overdue} overdue task{dueCounts.overdue > 1 ? 's' : ''}</strong> require immediate action. </>}
+                        {dueCounts.dueToday > 0 && <><strong>{dueCounts.dueToday} task{dueCounts.dueToday > 1 ? 's' : ''}</strong> due today.</>}
+                    </p>
+                </div>
+            )}
+
+            {/* ── Stat Cards — two rows for clarity ───────────────────── */}
+            {/* Row 1: Core metrics (4 cards) */}
+            <div id="tour-stats" className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                 {loading ? (
-                    <>
-                        <StatCardSkeleton />
-                        <StatCardSkeleton />
-                        <StatCardSkeleton />
-                        <StatCardSkeleton />
-                        <StatCardSkeleton />
-                        <StatCardSkeleton />
-                        <StatCardSkeleton />
-                    </>
+                    <><StatCardSkeleton /><StatCardSkeleton /><StatCardSkeleton /><StatCardSkeleton /></>
                 ) : (
                     <>
                         <StatCard
-                            title="Total Employees"
+                            title="Team Members"
                             value={stats.length.toString()}
-                            trend="Active team members"
+                            trend="Active employees"
                             icon={User}
+                            iconColor="text-blue-600 dark:text-blue-400"
+                            iconBg="bg-blue-50 dark:bg-blue-900/30"
                         />
                         <StatCard
-                            title="Total Assigned"
+                            title="Total Tasks"
                             value={totalTasks.toString()}
-                            trend="Tasks globally assigned"
+                            trend={`In ${activeLabel.toLowerCase()}`}
                             icon={ClipboardList}
                         />
                         <StatCard
-                            title="Completed Tasks"
+                            title="Completed"
                             value={completedTasksCount.toString()}
                             trend="Successfully finished"
                             icon={Check}
+                            progress={totalTasks > 0 ? (completedTasksCount / totalTasks) * 100 : 0}
+                            progressText={`${completedTasksCount} of ${totalTasks} tasks`}
+                            iconColor="text-green-600 dark:text-green-400"
+                            iconBg="bg-green-50 dark:bg-green-900/30"
                         />
                         <StatCard
-                            title="Overdue"
-                            value={dueCounts.overdue.toString()}
-                            trend="Requires immediate action"
-                            icon={AlertCircle}
-                            iconColor="text-red-700 dark:text-red-400"
-                            iconBg="bg-red-100 dark:bg-red-900/30"
-                        />
-                        <StatCard
-                            title="Due Today"
-                            value={dueCounts.dueToday.toString()}
-                            trend="Tasks due today"
-                            icon={Clock}
-                            iconColor="text-amber-700 dark:text-amber-400"
-                            iconBg="bg-amber-100 dark:bg-amber-900/30"
-                        />
-                        <StatCard
-                            title="Due Soon"
-                            value={dueCounts.dueSoon.toString()}
-                            trend="Due within 2 days"
-                            icon={AlertTriangle}
-                            iconColor="text-blue-700 dark:text-blue-400"
-                            iconBg="bg-blue-100 dark:bg-blue-900/30"
-                        />
-                        <StatCard
-                            title="Overall Reliability"
+                            title="Reliability"
                             value={overallReliability.toString()}
                             valueSuffix="%"
                             trend="Team on-time rate"
-                            icon={Percent}
-                            iconColor={overallReliability >= 80 ? 'text-green-700' : 'text-amber-600'}
-                            iconBg={overallReliability >= 80 ? 'bg-green-100' : 'bg-amber-100'}
+                            icon={TrendingUp}
+                            iconColor={parseFloat(overallReliability) >= 80 ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}
+                            iconBg={parseFloat(overallReliability) >= 80 ? 'bg-green-50 dark:bg-green-900/30' : 'bg-amber-50 dark:bg-amber-900/30'}
                         />
                     </>
                 )}
             </div>
 
-            {/* Split Content Area for Table and Chart */}
-            <div className="mt-6 flex-1 flex flex-col lg:flex-row gap-6 items-stretch">
-                {/* 65% Width Table */}
+            {/* Row 2: Urgency metrics (3 cards, visually distinguished) */}
+            <div className="grid grid-cols-3 gap-4 mb-6">
+                {loading ? (
+                    <><StatCardSkeleton /><StatCardSkeleton /><StatCardSkeleton /></>
+                ) : (
+                    <>
+                        <StatCard
+                            title="Overdue"
+                            value={dueCounts.overdue.toString()}
+                            trend="Requires immediate action"
+                            icon={AlertCircle}
+                            iconColor="text-red-600 dark:text-red-400"
+                            iconBg="bg-red-50 dark:bg-red-900/30"
+                        />
+                        <StatCard
+                            title="Due Today"
+                            value={dueCounts.dueToday.toString()}
+                            trend="Must be done today"
+                            icon={Clock}
+                            iconColor="text-amber-600 dark:text-amber-400"
+                            iconBg="bg-amber-50 dark:bg-amber-900/30"
+                        />
+                        <StatCard
+                            title="Due Soon"
+                            value={dueCounts.dueSoon.toString()}
+                            trend="Within the next 2 days"
+                            icon={AlertTriangle}
+                            iconColor="text-blue-600 dark:text-blue-400"
+                            iconBg="bg-blue-50 dark:bg-blue-900/30"
+                        />
+                    </>
+                )}
+            </div>
+
+            {/* ── Main Content: Table + Chart ───────────────────────────── */}
+            <div className="flex-1 flex flex-col lg:flex-row gap-6 items-stretch">
                 <div className="w-full lg:w-[65%] shrink-0 flex flex-col">
                     <TaskTable employees={tableEmployees} loading={loading} />
                 </div>
-
-                {/* 35% Width Chart Panel */}
                 <div className="w-full lg:w-[35%] flex flex-col">
                     <ErrorBoundary>
                         <TaskStatusChart tasks={filteredTasks} loading={loading} />
                     </ErrorBoundary>
                 </div>
             </div>
-
-            {/* Footer */}
-            <footer className="mt-auto py-6 flex items-center justify-center gap-6 text-[11px] font-semibold text-slate-500">
-                <a href="#" className="hover:text-slate-800 transition-colors">About</a>
-                <a href="#" className="hover:text-slate-800 transition-colors">Support</a>
-                <a href="#" className="hover:text-slate-800 transition-colors">Privacy Policy</a>
-                <span>© 2024 ReliabilityIQ</span>
-            </footer>
         </div>
     );
 };

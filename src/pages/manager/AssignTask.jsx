@@ -283,7 +283,7 @@ const AssignTask = () => {
                             value={title}
                             onChange={(e) => { setTitle(e.target.value); if (validationErrors.title) setValidationErrors({ ...validationErrors, title: null }); }}
                             placeholder="e.g. Q4 System Infrastructure Audit"
-                            className={`w-full px-4 py-3 bg-[#f8fafc] dark:bg-slate-800 border ${validationErrors.title ? 'border-red-500 focus:ring-red-500' : 'border-slate-200 dark:border-slate-700 focus:ring-[#ea580c]/50 focus:border-[#ea580c]'} rounded-lg text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 transition-colors`}
+                            className={`w-full px-4 py-3 bg-[#f8fafc] dark:bg-slate-800/80 border ${validationErrors.title ? 'border-red-500 focus:ring-red-500' : 'border-slate-200 dark:border-slate-700 focus:ring-blue-500/20 focus:border-blue-500'} rounded-xl text-sm font-semibold text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-4 transition-all shadow-sm`}
                         />
                         {validationErrors.title && <p className="text-red-500 text-[11px] font-medium mt-1.5 flex items-center gap-1"><AlertCircle size={12} /> {validationErrors.title}</p>}
                     </div>
@@ -296,7 +296,7 @@ const AssignTask = () => {
                             value={description}
                             onChange={(e) => { setDescription(e.target.value); if (validationErrors.description) setValidationErrors({ ...validationErrors, description: null }); }}
                             placeholder="Provide detailed instructions or specific goals for this task..."
-                            className={`w-full px-4 py-3 bg-[#f8fafc] dark:bg-slate-800 border ${validationErrors.description ? 'border-red-500 focus:ring-red-500' : 'border-slate-200 dark:border-slate-700 focus:ring-[#ea580c]/50 focus:border-[#ea580c]'} rounded-lg text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 transition-colors resize-none`}
+                            className={`w-full px-4 py-3 bg-[#f8fafc] dark:bg-slate-800/80 border ${validationErrors.description ? 'border-red-500 focus:ring-red-500' : 'border-slate-200 dark:border-slate-700 focus:ring-blue-500/20 focus:border-blue-500'} rounded-xl text-sm font-medium text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-4 transition-all shadow-sm resize-none`}
                         ></textarea>
                         {validationErrors.description && <p className="text-red-500 text-[11px] font-medium mt-1.5 flex items-center gap-1"><AlertCircle size={12} /> {validationErrors.description}</p>}
 
@@ -305,7 +305,7 @@ const AssignTask = () => {
                                 type="button"
                                 onClick={handleImproveAI}
                                 disabled={isImproving}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-md transition-colors disabled:opacity-50"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 rounded-lg transition-colors disabled:opacity-50"
                             >
                                 {isImproving ? <Loader2 size={14} className="animate-spin text-indigo-600" /> : <Sparkles size={14} className="text-indigo-600" />}
                                 {isImproving ? 'Generating...' : 'Improve with AI'}
@@ -322,7 +322,7 @@ const AssignTask = () => {
                                     type="button"
                                     onClick={handleSmartAssign}
                                     disabled={isSmartAssigning}
-                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold text-violet-600 bg-violet-50 hover:bg-violet-100 rounded-md transition-colors disabled:opacity-50"
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-bold text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/30 hover:bg-violet-100 dark:hover:bg-violet-900/50 rounded-lg transition-colors disabled:opacity-50"
                                 >
                                     {isSmartAssigning ? <Loader2 size={12} className="animate-spin text-violet-600" /> : <UserCheck size={12} className="text-violet-600" />}
                                     {isSmartAssigning ? 'Routing...' : 'Smart Assign'}
@@ -332,7 +332,7 @@ const AssignTask = () => {
                                 <select
                                     value={assignedTo}
                                     onChange={(e) => { setAssignedTo(e.target.value); if (validationErrors.assignedTo) setValidationErrors({ ...validationErrors, assignedTo: null }); }}
-                                    className={`w-full px-4 py-3 bg-[#f8fafc] dark:bg-slate-800 border ${validationErrors.assignedTo ? 'border-red-500 focus:ring-red-500' : 'border-slate-200 dark:border-slate-700 focus:ring-[#ea580c]/50 focus:border-[#ea580c]'} rounded-lg text-sm text-slate-700 dark:text-slate-200 appearance-none focus:outline-none focus:ring-2 transition-colors cursor-pointer block border-r-8 border-transparent`}
+                                    className={`w-full px-4 py-3 bg-[#f8fafc] dark:bg-slate-800/80 border ${validationErrors.assignedTo ? 'border-red-500 focus:ring-red-500' : 'border-slate-200 dark:border-slate-700 focus:ring-blue-500/20 focus:border-blue-500'} rounded-xl text-sm font-semibold text-slate-700 dark:text-slate-200 appearance-none focus:outline-none focus:ring-4 transition-all shadow-sm cursor-pointer block border-r-8 border-transparent`}
                                 >
                                     <option value="" disabled>Select an employee</option>
                                     {employees.map(emp => {
@@ -384,7 +384,7 @@ const AssignTask = () => {
                                     type="date"
                                     value={deadline}
                                     onChange={(e) => { setDeadline(e.target.value); if (validationErrors.deadline) setValidationErrors({ ...validationErrors, deadline: null }); }}
-                                    className={`w-full px-4 py-3 bg-[#f8fafc] dark:bg-slate-800 border ${validationErrors.deadline ? 'border-red-500 focus:ring-red-500' : 'border-slate-200 dark:border-slate-700 focus:ring-[#ea580c]/50 focus:border-[#ea580c]'} rounded-lg text-sm text-slate-700 dark:text-slate-200 appearance-none focus:outline-none focus:ring-2 transition-colors cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:w-full`}
+                                    className={`w-full px-4 py-3 bg-[#f8fafc] dark:bg-slate-800/80 border ${validationErrors.deadline ? 'border-red-500 focus:ring-red-500' : 'border-slate-200 dark:border-slate-700 focus:ring-blue-500/20 focus:border-blue-500'} rounded-xl text-sm font-semibold text-slate-700 dark:text-slate-200 appearance-none focus:outline-none focus:ring-4 transition-all shadow-sm cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:w-full`}
                                 />
                                 <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 h-[18px] w-[18px] text-slate-900 dark:text-slate-400 pointer-events-none" />
                             </div>
@@ -427,7 +427,7 @@ const AssignTask = () => {
                             <select
                                 value={parentTaskId}
                                 onChange={(e) => setParentTaskId(e.target.value)}
-                                className="w-full px-4 py-3 bg-[#f8fafc] dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-700 dark:text-slate-200 appearance-none focus:outline-none focus:ring-2 focus:ring-[#ea580c]/50 focus:border-[#ea580c] transition-colors cursor-pointer block border-r-8 border-transparent"
+                                className="w-full px-4 py-3 bg-[#f8fafc] dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-700 dark:text-slate-200 appearance-none focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm cursor-pointer block border-r-8 border-transparent"
                             >
                                 <option value="">Select an existing task to link...</option>
                                 {existingTasks.map(task => (
@@ -440,10 +440,10 @@ const AssignTask = () => {
 
                     {/* Buttons */}
                     <div className="pt-4 flex gap-4">
-                        <button type="button" onClick={() => navigate('/dashboard')} className="flex-1 py-3 px-4 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-bold text-[#0f172a] dark:text-white bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                        <button type="button" onClick={() => navigate('/dashboard')} className="flex-1 py-3 px-4 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-[#0f172a] dark:text-white bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm focus:ring-4 focus:ring-slate-500/10">
                             Cancel
                         </button>
-                        <button disabled={isSubmitting} type="submit" className="flex-1 py-3 px-4 border border-transparent rounded-lg text-sm font-bold text-white bg-[#ea580c] hover:bg-orange-600 shadow-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed">
+                        <button disabled={isSubmitting} type="submit" className="flex-1 py-3 px-4 border border-transparent rounded-xl text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-sm transition-all focus:ring-4 focus:ring-blue-500/20 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed">
                             {isSubmitting ? (
                                 <>
                                     Assigning...

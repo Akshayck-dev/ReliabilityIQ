@@ -13,10 +13,12 @@ const TaskStatusBadge = ({ status }) => {
             return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"><CheckCircle2 size={12} /> Completed</span>;
         case 'in_progress':
             return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"><Clock size={12} /> In Progress</span>;
+        case 'review':
+            return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400"><Clock size={12} /> In Review</span>;
         case 'pending':
             return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300"><CheckSquare size={12} /> Pending</span>;
         default:
-            return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">{status}</span>;
+            return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-slate-700 dark:text-slate-300">{status}</span>;
     }
 };
 
@@ -109,47 +111,97 @@ const EmployeeProfile = () => {
 
                 <a
                     href={`mailto:${employee.email}`}
-                    className="inline-flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors mt-2 sm:mt-0 border border-slate-200 dark:border-slate-700"
+                    className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors mt-2 sm:mt-0 shadow-sm"
                 >
-                    <Mail size={16} /> Contact
+                    <Mail size={15} /> Contact
                 </a>
             </div>
 
             {/* Performance Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <Card className="p-5 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
-                    <div>
-                        <p className="text-[13px] font-medium text-slate-500 dark:text-slate-400">Tasks Completed</p>
-                        <div className="flex items-baseline gap-2 mt-1.5">
-                            <span className="text-3xl font-bold text-slate-900 dark:text-white">{stats.tasksCompletedLast6Mo}</span>
+                {/* Tasks Completed */}
+                <Card noPadding>
+                    <div className="p-5 flex flex-col justify-between h-full">
+                        <div className="flex items-start justify-between">
+                            <div>
+                                <p className="text-[13px] font-medium text-slate-500 dark:text-slate-400">Tasks Completed</p>
+                                <div className="flex items-baseline gap-1.5 mt-1.5">
+                                    <span className="text-3xl font-bold text-slate-900 dark:text-white">{stats.tasksCompletedLast6Mo}</span>
+                                    <span className="text-sm font-medium text-slate-400">tasks</span>
+                                </div>
+                            </div>
+                            <div className="w-9 h-9 rounded-lg bg-green-50 dark:bg-green-900/30 flex items-center justify-center shrink-0">
+                                <CheckCircle2 size={17} className="text-green-600 dark:text-green-400" />
+                            </div>
                         </div>
+                        <p className="text-[12px] text-slate-400 dark:text-slate-500 mt-3 font-medium">In the last 6 months</p>
                     </div>
-                    <p className="text-[12px] text-slate-400 mt-3 font-medium">Last 6 Months</p>
                 </Card>
 
-                <Card className="p-5 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
-                    <div>
-                        <p className="text-[13px] font-medium text-slate-500 dark:text-slate-400">Average Delay</p>
-                        <div className="flex items-baseline gap-2 mt-1.5">
-                            <span className={`text-3xl font-bold ${stats.avgDelay.includes('d') || parseInt(stats.avgDelay) > 24 ? 'text-orange-500 dark:text-orange-400' : 'text-slate-900 dark:text-white'}`}>
-                                {stats.avgDelay}
-                            </span>
+                {/* Average Delay */}
+                <Card noPadding>
+                    <div className="p-5 flex flex-col justify-between h-full">
+                        <div className="flex items-start justify-between">
+                            <div>
+                                <p className="text-[13px] font-medium text-slate-500 dark:text-slate-400">Average Delay</p>
+                                <div className="flex items-baseline gap-1.5 mt-1.5">
+                                    <span className={`text-3xl font-bold ${
+                                        stats.avgDelay !== '0h' && stats.avgDelay !== '-'
+                                            ? 'text-red-600 dark:text-red-400'
+                                            : 'text-slate-900 dark:text-white'
+                                    }`}>{stats.avgDelay}</span>
+                                </div>
+                            </div>
+                            <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                                stats.avgDelay !== '0h' && stats.avgDelay !== '-'
+                                    ? 'bg-red-50 dark:bg-red-900/30'
+                                    : 'bg-green-50 dark:bg-green-900/30'
+                            }`}>
+                                <Clock size={17} className={stats.avgDelay !== '0h' && stats.avgDelay !== '-' ? 'text-red-500 dark:text-red-400' : 'text-green-600 dark:text-green-400'} />
+                            </div>
                         </div>
+                        <p className="text-[12px] text-slate-400 dark:text-slate-500 mt-3 font-medium">Across all completed tasks</p>
                     </div>
-                    <p className="text-[12px] text-slate-400 mt-3 font-medium">Across all tasks</p>
                 </Card>
 
-                <Card className="p-5 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
-                    <div>
-                        <p className="text-[13px] font-medium text-slate-500 dark:text-slate-400">Current Reliability</p>
-                        <div className="flex items-baseline gap-2 mt-1.5">
-                            <span className={`text-3xl font-bold ${needsAttention ? 'text-red-600 dark:text-red-500' : 'text-slate-900 dark:text-white'}`}>
-                                {stats.currentReliability}%
-                            </span>
-                            {needsAttention && <AlertCircle size={18} className="text-red-500 shrink-0" />}
+                {/* Reliability */}
+                <Card noPadding>
+                    <div className="p-5 flex flex-col justify-between h-full">
+                        <div className="flex items-start justify-between">
+                            <div>
+                                <p className="text-[13px] font-medium text-slate-500 dark:text-slate-400">Current Reliability</p>
+                                <div className="flex items-center gap-2 mt-1.5">
+                                    <span className={`text-3xl font-bold ${
+                                        needsAttention ? 'text-red-600 dark:text-red-500'
+                                        : stats.currentReliability >= 80 ? 'text-green-600 dark:text-green-400'
+                                        : 'text-amber-600 dark:text-amber-400'
+                                    }`}>{stats.currentReliability}%</span>
+                                    {needsAttention && <AlertCircle size={16} className="text-red-500 shrink-0" />}
+                                </div>
+                            </div>
+                            <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                                needsAttention ? 'bg-red-50 dark:bg-red-900/30'
+                                : stats.currentReliability >= 80 ? 'bg-green-50 dark:bg-green-900/30'
+                                : 'bg-amber-50 dark:bg-amber-900/30'
+                            }`}>
+                                <CheckCircle2 size={17} className={needsAttention ? 'text-red-500' : stats.currentReliability >= 80 ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'} />
+                            </div>
+                        </div>
+                        {/* Progress bar */}
+                        <div className="mt-3">
+                            <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                <div
+                                    className={`h-full rounded-full transition-all duration-700 ${
+                                        needsAttention ? 'bg-red-500'
+                                        : stats.currentReliability >= 80 ? 'bg-green-500'
+                                        : 'bg-amber-500'
+                                    }`}
+                                    style={{ width: `${Math.min(stats.currentReliability, 100)}%` }}
+                                />
+                            </div>
+                            <p className="text-[12px] text-slate-400 dark:text-slate-500 mt-1.5 font-medium">On-time completion rate</p>
                         </div>
                     </div>
-                    <p className="text-[12px] text-slate-400 mt-3 font-medium">Completed on time count</p>
                 </Card>
             </div>
 

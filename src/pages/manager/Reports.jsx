@@ -173,7 +173,7 @@ const Reports = () => {
                 <button
                     onClick={handleExportCSV}
                     disabled={isExporting || tasks.length === 0}
-                    className="flex items-center gap-2 bg-[#ea580c] hover:bg-orange-600 text-white px-5 py-2.5 rounded-lg text-sm font-bold transition-colors shadow-sm self-start sm:self-auto disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-500/20 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-sm self-start sm:self-auto disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     <FileDown size={18} />
                     {isExporting ? 'Exporting...' : 'Export CSV'}
@@ -185,7 +185,7 @@ const Reports = () => {
                 {/* Column 1: Status Distribution */}
                 <Card className="p-6 col-span-1 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col">
                     <div className="flex items-center gap-2 mb-6">
-                        <PieChartIcon size={20} className="text-[#ea580c]" />
+                        <PieChartIcon size={20} className="text-blue-600 dark:text-blue-500" />
                         <h2 className="text-lg font-bold text-[#0f172a] dark:text-white">Task Status Volume</h2>
                     </div>
                     {statusData.length > 0 ? (
@@ -228,7 +228,7 @@ const Reports = () => {
                 {/* Column 2: Priority Metrics */}
                 <Card className="p-6 col-span-1 lg:col-span-2 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col">
                     <div className="flex items-center gap-2 mb-6">
-                        <BarChart2 size={20} className="text-[#ea580c]" />
+                        <BarChart2 size={20} className="text-blue-600 dark:text-blue-500" />
                         <h2 className="text-lg font-bold text-[#0f172a] dark:text-white">Priority Distribution</h2>
                     </div>
                     {tasks.length > 0 ? (
@@ -299,7 +299,7 @@ const Reports = () => {
                                                     {performer.name.charAt(0).toUpperCase()}
                                                 </div>
                                                 <div>
-                                                    <h3 className="text-[15px] font-bold text-slate-900 dark:text-white group-hover:text-[#ea580c] transition-colors">{performer.name}</h3>
+                                                    <h3 className="text-[15px] font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{performer.name}</h3>
                                                     <p className="text-[12px] font-medium text-slate-500 dark:text-slate-400">{performer.email}</p>
                                                 </div>
                                             </div>

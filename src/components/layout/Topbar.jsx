@@ -8,6 +8,7 @@ import { fetchNotifications, markNotificationRead, markAllNotificationsRead, not
 import { toggleTheme } from '../../store/themeSlice';
 import { formatRelativeTime } from '../../utils/timeFormat';
 import { supabase } from '../../lib/supabase';
+import { useSoundEffects } from '../../hooks/useSoundEffects';
 
 const Topbar = () => {
     const { role, user } = useAuth();
@@ -23,6 +24,7 @@ const Topbar = () => {
     const [isAnimating, setIsAnimating] = useState(false);
     const notificationRef = useRef(null);
     const prevFirstNotifIdRef = useRef(null);
+    const { playNotification } = useSoundEffects();
 
     // 1. Initial Fetch
     useEffect(() => {
@@ -62,6 +64,7 @@ const Topbar = () => {
         const firstNotifId = notifications?.[0]?.id;
         if (firstNotifId && prevFirstNotifIdRef.current && firstNotifId !== prevFirstNotifIdRef.current) {
             setIsAnimating(true);
+            playNotification();
             const timer = setTimeout(() => setIsAnimating(false), 800);
             prevFirstNotifIdRef.current = firstNotifId;
             return () => clearTimeout(timer);
@@ -69,7 +72,7 @@ const Topbar = () => {
         if (firstNotifId) {
             prevFirstNotifIdRef.current = firstNotifId;
         }
-    }, [notifications]);
+    }, [notifications, playNotification]);
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -128,20 +131,22 @@ const Topbar = () => {
                 <div className="relative" ref={notificationRef}>
                     <button
                         onClick={() => setShowNotifications(!showNotifications)}
-                        className={`relative p-2 text-slate-500 hover:bg-slate-50 rounded-full transition-colors focus:outline-none ${isAnimating ? 'animate-bell-shake text-[#ea580c] dark:text-[#ea580c]' : ''}`}
+                        className={`relative p-2 text-slate-500 hover:bg-slate-50 rounded-full transition-colors focus:outline-none ${isAnimating ? 'animate-bell-shake text-blue-600 dark:text-blue-400' : ''}`}
                     >
                         <Bell size={20} className={isAnimating ? 'fill-current' : ''} />
                         {unreadCount > 0 && (
-                            <span className="absolute top-1 right-1 bg-red-500 w-2.5 h-2.5 rounded-full ring-[2.5px] ring-white dark:ring-slate-900 shadow-sm transform translate-x-1/4 -translate-y-1/4"></span>
+                            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold min-w-[16px] h-4 rounded-full flex items-center justify-center px-1 ring-2 ring-white dark:ring-slate-900 shadow-sm">
+                                {displayUnread}
+                            </span>
                         )}
                     </button>
 
                     {/* Dropdown Menu */}
                     {showNotifications && (
-                        <div className="absolute right-0 mt-2 w-[350px] bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden z-50">
-                            <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                        <div className="absolute right-0 mt-2 w-[350px] bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden z-50">
+                            <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50">
                                 <div className="flex items-center gap-2">
-                                    <h3 className="font-bold text-slate-900 text-sm">Notifications</h3>
+                                    <h3 className="font-bold text-slate-900 dark:text-white text-sm">Notifications</h3>
                                     {unreadCount > 0 && (
                                         <span className="bg-blue-100 text-blue-700 text-[10px] uppercase font-bold px-2 py-0.5 rounded-full">
                                             {displayUnread} New

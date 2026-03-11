@@ -10,6 +10,7 @@ import { supabase } from '../../lib/supabase';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
 import { updateTaskStatus } from '../tasks/tasksSlice';
+import { useSoundEffects } from '../../hooks/useSoundEffects';
 
 /* ─── Priority Badge ──────────────────────────────────────────────────────── */
 const PriorityBadge = ({ priority }) => {
@@ -50,6 +51,7 @@ const TaskDetailsDrawer = ({ taskId, onClose }) => {
     const { user, role } = useAuth();
     const dispatch = useDispatch();
     const isManager = role === 'manager';
+    const { playSuccess, playPop } = useSoundEffects();
 
     const [task, setTask] = useState(null);
     const [originalTask, setOriginalTask] = useState(null);
@@ -133,6 +135,12 @@ const TaskDetailsDrawer = ({ taskId, onClose }) => {
                     newStatus: task.status,
                     userEmail: user.email
                 })).unwrap();
+                
+                if (task.status === 'completed') {
+                    playSuccess();
+                } else {
+                    playPop();
+                }
             }
 
             if (Object.keys(updates).length > 0) {
@@ -161,6 +169,13 @@ const TaskDetailsDrawer = ({ taskId, onClose }) => {
                 newStatus: empStatus,
                 userEmail: user.email
             })).unwrap();
+            
+            if (empStatus === 'completed') {
+                playSuccess();
+            } else {
+                playPop();
+            }
+            
             toast.success('Status updated!');
             onClose();
         } catch (err) {
@@ -189,7 +204,7 @@ const TaskDetailsDrawer = ({ taskId, onClose }) => {
     // Subtasks
     const handleAddSubtask = async () => {
         if (!newSubtask.trim()) return;
-        const newItem = { id: Date.now().toString(), title: newSubtask.trim(), completed: false };
+        const newItem = { id: crypto.randomUUID(), title: newSubtask.trim(), completed: false };
         const newItems = [...subtasks, newItem];
         setSubtasks(newItems);
         setNewSubtask('');
@@ -211,7 +226,7 @@ const TaskDetailsDrawer = ({ taskId, onClose }) => {
                     remarks: tData.remarks.map(r => r.id === existingSubtasksRemark.id ? { ...r, items: newItems } : r)
                 }).eq('id', taskId);
             } else {
-                const newRemarkObj = { id: Date.now().toString(), type: 'subtasks', items: newItems, created_at: new Date().toISOString() };
+                const newRemarkObj = { id: crypto.randomUUID(), type: 'subtasks', items: newItems, created_at: new Date().toISOString() };
                 await supabase.from('tasks').update({ remarks: [...(tData?.remarks || []), newRemarkObj] }).eq('id', taskId);
             }
         } catch (err) {
@@ -222,7 +237,7 @@ const TaskDetailsDrawer = ({ taskId, onClose }) => {
     const handleAddComment = async () => {
         if (!newComment.trim()) return;
         const remarkObj = {
-            id: Date.now().toString(),
+            id: crypto.randomUUID(),
             text: newComment.trim(),
             author_id: user.id,
             author_email: user.email,
@@ -283,17 +298,17 @@ const TaskDetailsDrawer = ({ taskId, onClose }) => {
                             type="text"
                             value={task.title || ''}
                             onChange={(e) => handleFieldChange('title', e.target.value)}
-                            className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-md text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                            className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-900 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all font-semibold"
                         />
                     </div>
 
                     {/* Description */}
                     <div>
                         <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Description</label>
-                        <div className="border border-slate-200 dark:border-slate-700 rounded-md overflow-hidden bg-white dark:bg-slate-900">
+                        <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden bg-white dark:bg-slate-900 focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-500/20 transition-all">
                             <div className="flex items-center gap-1 p-1 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
                                 {[Bold, Italic, Underline, Link, List, AlignLeft].map((Icon, i) => (
-                                    <button key={i} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded"><Icon size={14} className="text-slate-600 dark:text-slate-400" /></button>
+                                    <button key={i} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"><Icon size={14} className="text-slate-600 dark:text-slate-400" /></button>
                                 ))}
                             </div>
                             <textarea
@@ -309,7 +324,7 @@ const TaskDetailsDrawer = ({ taskId, onClose }) => {
                     <div className="grid grid-cols-[100px_1fr] gap-y-4 items-center">
                         <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Status</label>
                         <select value={task.status || 'pending'} onChange={(e) => handleFieldChange('status', e.target.value)}
-                            className="w-full px-3 py-1.5 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-blue-500">
+                            className="w-full px-3 py-1.5 text-sm border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all">
                             <option value="pending">To Do</option>
                             <option value="in_progress">In Progress</option>
                             <option value="review">In Review</option>
@@ -318,7 +333,7 @@ const TaskDetailsDrawer = ({ taskId, onClose }) => {
 
                         <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Assignee</label>
                         <select value={task.assigned_to || ''} onChange={(e) => handleFieldChange('assigned_to', e.target.value)}
-                            className="w-full px-3 py-1.5 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-blue-500">
+                            className="w-full px-3 py-1.5 text-sm border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all">
                             <option value="" disabled>Select Assignee</option>
                             {employees.map(emp => (
                                 <option key={emp.id} value={emp.id}>{emp.email?.split('@')[0] || 'Unknown'}</option>
@@ -331,9 +346,9 @@ const TaskDetailsDrawer = ({ taskId, onClose }) => {
                                 const isSelected = task.priority === pLevel;
                                 return (
                                     <button key={pLevel} onClick={() => handleFieldChange('priority', pLevel)}
-                                        className={`flex-1 text-xs font-semibold py-1 rounded capitalize transition-colors ${isSelected
-                                            ? (pLevel === 'high' ? 'bg-red-500 text-white' : pLevel === 'medium' ? 'bg-amber-500 text-white' : 'bg-green-500 text-white')
-                                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}>
+                                        className={`flex-1 text-xs font-semibold py-1 rounded-md capitalize transition-colors ${isSelected
+                                            ? (pLevel === 'high' ? 'bg-red-500 text-white shadow-sm' : pLevel === 'medium' ? 'bg-amber-500 text-white shadow-sm' : 'bg-green-500 text-white shadow-sm')
+                                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700'}`}>
                                         {pLevel}
                                     </button>
                                 );
@@ -343,7 +358,7 @@ const TaskDetailsDrawer = ({ taskId, onClose }) => {
                         <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Deadline</label>
                         <input type="date" value={task.due_date ? task.due_date.split('T')[0] : ''}
                             onChange={(e) => handleFieldChange('due_date', e.target.value ? new Date(e.target.value).toISOString() : null)}
-                            className="w-full px-3 py-1.5 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-blue-500" />
+                            className="w-full px-3 py-1.5 text-sm border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all [&::-webkit-calendar-picker-indicator]:cursor-pointer" />
                     </div>
 
                     {/* Subtasks */}
@@ -411,7 +426,7 @@ const TaskDetailsDrawer = ({ taskId, onClose }) => {
                     </div>
 
                     {/* Subtasks — read/toggle only */}
-                    <SubtaskSection subtasks={subtasks} newSubtask={newSubtask} onNewChange={setNewSubtask} onAdd={handleAddSubtask} onToggle={handleToggleSubtask} />
+                    <SubtaskSection subtasks={subtasks} newSubtask={newSubtask} onNewChange={setNewSubtask} onAdd={handleAddSubtask} onToggle={handleToggleSubtask} readOnly />
 
                     {/* Comments */}
                     <CommentSection comments={comments} newComment={newComment} onNewChange={setNewComment} onAdd={handleAddComment} />
@@ -424,17 +439,17 @@ const TaskDetailsDrawer = ({ taskId, onClose }) => {
                     {isManager ? (
                         <>
                             <button onClick={handleSave} disabled={isSaving}
-                                className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-white font-bold transition-colors disabled:opacity-50">
+                                className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-500/20 rounded-xl text-white font-bold transition-all disabled:opacity-50 shadow-sm">
                                 {isSaving ? 'Saving...' : 'Save Changes'}
                             </button>
                             <button onClick={handleDelete} disabled={isSaving}
-                                className="w-full py-2.5 bg-white dark:bg-transparent border border-red-200 dark:border-red-900 text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg font-bold transition-colors disabled:opacity-50">
+                                className="w-full py-2.5 bg-white dark:bg-slate-900 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl font-bold transition-colors disabled:opacity-50">
                                 Delete Task
                             </button>
                         </>
                     ) : (
                         <button onClick={handleEmployeeStatusSave} disabled={isSaving || empStatus === task.status}
-                            className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-white font-bold transition-colors disabled:opacity-50">
+                            className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-500/20 rounded-xl text-white font-bold transition-all disabled:opacity-50 shadow-sm">
                             {isSaving ? 'Updating...' : 'Update Status'}
                         </button>
                     )}
@@ -445,13 +460,13 @@ const TaskDetailsDrawer = ({ taskId, onClose }) => {
 };
 
 /* ─── Shared Subtask Section ─────────────────────────────────────────────── */
-const SubtaskSection = ({ subtasks, newSubtask, onNewChange, onAdd, onToggle }) => (
+const SubtaskSection = ({ subtasks, newSubtask, onNewChange, onAdd, onToggle, readOnly = false }) => (
     <div>
         <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Subtasks</label>
         <div className="space-y-2 mb-2">
             {subtasks.map(s => (
                 <div key={s.id} className="flex items-center gap-2 group cursor-pointer" onClick={() => onToggle(s.id)}>
-                    <button className="text-slate-400 group-hover:text-blue-500 transition-colors focus:outline-none">
+                    <button className="text-slate-400 group-hover:text-blue-500 transition-colors focus:outline-none" aria-label={s.completed ? 'Mark incomplete' : 'Mark complete'}>
                         {s.completed ? <CheckSquare size={16} className="text-emerald-500" /> : <Square size={16} />}
                     </button>
                     <span className={`text-sm ${s.completed ? 'text-slate-400 line-through' : 'text-slate-700 dark:text-slate-300'}`}>
@@ -459,13 +474,18 @@ const SubtaskSection = ({ subtasks, newSubtask, onNewChange, onAdd, onToggle }) 
                     </span>
                 </div>
             ))}
+            {subtasks.length === 0 && (
+                <p className="text-xs text-slate-400 italic">No subtasks yet.</p>
+            )}
         </div>
-        <div className="flex items-center gap-2">
-            <Plus size={16} className="text-slate-400 shrink-0" />
-            <input type="text" placeholder="Add Subtask" value={newSubtask} onChange={(e) => onNewChange(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && onAdd()}
-                className="text-sm bg-transparent border-none text-slate-700 dark:text-slate-300 placeholder:text-slate-400 focus:outline-none w-full" />
-        </div>
+        {!readOnly && (
+            <div className="flex items-center gap-2">
+                <Plus size={16} className="text-slate-400 shrink-0" />
+                <input type="text" placeholder="Add Subtask" value={newSubtask} onChange={(e) => onNewChange(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && onAdd()}
+                    className="text-sm bg-transparent border-none text-slate-700 dark:text-slate-300 placeholder:text-slate-400 focus:outline-none w-full" />
+            </div>
+        )}
     </div>
 );
 
@@ -492,9 +512,9 @@ const CommentSection = ({ comments, newComment, onNewChange, onAdd }) => (
         <div className="flex gap-2 items-center">
             <input type="text" value={newComment} onChange={(e) => onNewChange(e.target.value)}
                 placeholder="Add a comment..." onKeyDown={(e) => e.key === 'Enter' && onAdd()}
-                className="flex-1 px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-blue-500" />
+                className="flex-1 px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all" />
             <button onClick={onAdd} disabled={!newComment.trim()}
-                className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-sm font-semibold rounded-md hover:bg-slate-300 dark:hover:bg-slate-600 disabled:opacity-50">
+                className="px-4 py-2 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:bg-slate-200 dark:disabled:bg-slate-700 disabled:text-slate-500 transition-colors shadow-sm focus:ring-4 focus:ring-blue-500/20">
                 Post
             </button>
         </div>
