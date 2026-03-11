@@ -10,11 +10,12 @@ import CompleteSignup from './pages/auth/CompleteSignup';
 import Unauthorized from './features/auth/Unauthorized';
 import Dashboard from './features/dashboard/Dashboard';
 import TasksDashboard from './features/tasks/TasksDashboard';
-import TeamAnalytics from './features/analytics/TeamAnalytics';
 import MyTasks from './pages/employee/MyTasks';
 import AssignTask from './pages/manager/AssignTask';
 import Employees from './pages/manager/Employees';
+import EmployeeProfile from './pages/manager/EmployeeProfile';
 import Reports from './pages/manager/Reports';
+import Performance from './pages/manager/Performance';
 import TaskDetails from './pages/shared/TaskDetails';
 import Profile from './pages/shared/Profile';
 import Settings from './pages/shared/Settings';
@@ -47,9 +48,10 @@ const AppRoutes = () => {
             {/* Protected Routes - Managers Only */}
             <Route element={<ProtectedRoute allowedRoles={['manager']} />}>
                 <Route element={<Layout />}>
-                    <Route path="/analytics" element={<TeamAnalytics />} />
+                    <Route path="/performance" element={<Performance />} />
                     <Route path="/assign-task" element={<AssignTask />} />
                     <Route path="/employees" element={<Employees />} />
+                    <Route path="/employees/:employeeId" element={<EmployeeProfile />} />
                     <Route path="/reports" element={<Reports />} />
                 </Route>
             </Route>

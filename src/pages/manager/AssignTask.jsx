@@ -7,6 +7,15 @@ import { taskService } from '../../services/taskService';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../features/auth/AuthContext';
 
+// Pre-computed once at module level to avoid Math.random() during render
+const PARTICLE_KEYFRAMES = [...Array(8)].map((_, i) => {
+    const angle = (i * 45) * (Math.PI / 180);
+    const dist = 80 + (i % 4 === 0 ? 30 : i % 4 === 1 ? 10 : i % 4 === 2 ? 20 : 40);
+    const x = Math.cos(angle) * dist;
+    const y = Math.sin(angle) * dist;
+    return `@keyframes particle${i} { 0% { transform: translate(0, 0) scale(1); opacity: 1; } 100% { transform: translate(${x}px, ${y}px) scale(0); opacity: 0; } }`;
+}).join('\n');
+
 const AssignTask = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
@@ -15,8 +24,18 @@ const AssignTask = () => {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [assignedTo, setAssignedTo] = useState('');
-    const [deadline, setDeadline] = useState('');
-    const [priority, setPriority] = useState('Medium');
+    // Read defaults from Settings localStorage preferences
+    const [deadline, setDeadline] = useState(() => {
+        const dueDays = parseInt(localStorage.getItem('riq_default_due_days') || '7', 10);
+        const d = new Date();
+        d.setDate(d.getDate() + dueDays);
+        return d.toISOString().split('T')[0];
+    });
+    const [priority, setPriority] = useState(() => {
+        const saved = localStorage.getItem('riq_default_priority');
+        if (!saved) return 'medium';
+        return saved.charAt(0).toUpperCase() + saved.slice(1);
+    });
     const [parentTaskId, setParentTaskId] = useState('');
 
     // UI state
@@ -553,13 +572,7 @@ const SuccessOverlay = ({ title }) => (
             @keyframes bounceIn { 0% { transform: scale(0); } 60% { transform: scale(1.15); } 100% { transform: scale(1); } }
             @keyframes slideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
             @keyframes ping { 0% { transform: scale(1); opacity: 0.6; } 100% { transform: scale(2); opacity: 0; } }
-            ${[...Array(8)].map((_, i) => {
-            const angle = (i * 45) * (Math.PI / 180);
-            const dist = 80 + Math.random() * 40;
-            const x = Math.cos(angle) * dist;
-            const y = Math.sin(angle) * dist;
-            return `@keyframes particle${i} { 0% { transform: translate(0, 0) scale(1); opacity: 1; } 100% { transform: translate(${x}px, ${y}px) scale(0); opacity: 0; } }`;
-        }).join('\n')}
+            ${PARTICLE_KEYFRAMES}
         `}</style>
     </div>
 );

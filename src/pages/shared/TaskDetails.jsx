@@ -4,7 +4,8 @@ import Card from '../../components/ui/Card';
 import {
     Calendar, Clock, FileText, Info, History, Share2,
     CheckCircle2, TrendingUp, PlayCircle, UserPlus, Edit2, Archive, RotateCcw, Loader2,
-    MessageSquare, Send, Link as LinkIcon, Circle, AlertTriangle, ArrowRightCircle, Trash2, Sparkles, Wand2
+    MessageSquare, Send, Link as LinkIcon, Circle, AlertTriangle, ArrowRightCircle, Trash2, Sparkles, Wand2,
+    CheckSquare, Square, Plus
 } from 'lucide-react';
 import PriorityBadge from '../../components/ui/PriorityBadge';
 import Badge from '../../components/ui/Badge';
@@ -34,6 +35,8 @@ const TaskDetails = () => {
     const [isAdjustingTone, setIsAdjustingTone] = useState(false);
     const [isSummarizing, setIsSummarizing] = useState(false);
     const [summaryResult, setSummaryResult] = useState(null);
+    const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
+    const [isAddingSubtask, setIsAddingSubtask] = useState(false);
 
     useEffect(() => {
         const fetchTask = async () => {
@@ -194,6 +197,63 @@ const TaskDetails = () => {
         }
     };
 
+    const handleAddSubtask = async () => {
+        if (!newSubtaskTitle.trim()) return;
+        setIsAddingSubtask(true);
+        const newItem = { id: Date.now().toString(), title: newSubtaskTitle.trim(), completed: false };
+
+        // Find existing subtasks remark or create new items array
+        const existingSubtasksRemark = (rawTask?.remarks || []).find(r => r.type === 'subtasks');
+        const newItems = existingSubtasksRemark ? [...existingSubtasksRemark.items, newItem] : [newItem];
+
+        try {
+            if (existingSubtasksRemark) {
+                // Update existing subtasks remark
+                await supabase.from('tasks').update({
+                    remarks: rawTask.remarks.map(r => r.id === existingSubtasksRemark.id ? { ...r, items: newItems } : r)
+                }).eq('id', taskId);
+            } else {
+                // Create new subtasks remark
+                const newRemarkObj = {
+                    id: Date.now().toString(),
+                    type: 'subtasks',
+                    items: newItems,
+                    created_at: new Date().toISOString()
+                };
+                await supabase.from('tasks').update({
+                    remarks: [...(rawTask.remarks || []), newRemarkObj]
+                }).eq('id', taskId);
+            }
+
+            // Refresh
+            const updatedTask = await taskService.getTaskById(taskId);
+            setRawTask(updatedTask);
+            setNewSubtaskTitle('');
+        } catch (err) {
+            toast.error("Failed to add subtask.");
+        } finally {
+            setIsAddingSubtask(false);
+        }
+    };
+
+    const handleToggleSubtask = async (subtaskId) => {
+        const existingSubtasksRemark = (rawTask?.remarks || []).find(r => r.type === 'subtasks');
+        if (!existingSubtasksRemark) return;
+
+        const newItems = existingSubtasksRemark.items.map(s => s.id === subtaskId ? { ...s, completed: !s.completed } : s);
+        try {
+            await supabase.from('tasks').update({
+                remarks: rawTask.remarks.map(r => r.id === existingSubtasksRemark.id ? { ...r, items: newItems } : r)
+            }).eq('id', taskId);
+
+            // Refresh
+            const updatedTask = await taskService.getTaskById(taskId);
+            setRawTask(updatedTask);
+        } catch (err) {
+            toast.error("Failed to update subtask.");
+        }
+    };
+
     if (loading) return (
         <div className="flex flex-col h-screen items-center justify-center bg-slate-50 gap-4">
             <Loader2 size={32} className="animate-spin text-[#ea580c]" />
@@ -248,7 +308,7 @@ const TaskDetails = () => {
             return { icon: PlayCircle, iconColor: 'text-amber-500', borderColor: 'border-amber-200 dark:border-amber-800', bgColor: 'bg-amber-50 dark:bg-amber-900/20', label: 'Status Changed' };
         }
         // User remark (discussion)
-        if (remark.type !== 'system') {
+        if (remark.type !== 'system' && remark.type !== 'subtasks') {
             return { icon: MessageSquare, iconColor: 'text-slate-400', borderColor: 'border-slate-200 dark:border-slate-700', bgColor: 'bg-slate-50 dark:bg-slate-800/50', label: 'Remark Added' };
         }
         // Generic system log
@@ -290,7 +350,11 @@ const TaskDetails = () => {
     }
 
     // User discussions (non-system remarks only) for the chat section
-    const userDiscussions = allRemarks.filter(r => r.type !== 'system');
+    const userDiscussions = allRemarks.filter(r => r.type !== 'system' && r.type !== 'subtasks');
+
+    // Parse subtasks checklist from remarks
+    const subtasksRemark = allRemarks.find(r => r.type === 'subtasks');
+    const subtasks = subtasksRemark ? subtasksRemark.items : [];
 
     const task = {
         id: rawTask.id,
@@ -342,7 +406,18 @@ const TaskDetails = () => {
                             </span>
                         </div>
                     </div>
-                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Task ID: <span className="text-slate-700 dark:text-slate-300 font-semibold">{task.id}</span></p>
+                    <div className="flex flex-wrap items-center gap-4 mt-1.5">
+                        <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Task ID: <span className="text-slate-700 dark:text-slate-300 font-semibold">{task.id}</span></p>
+                        {linkedTasks.parentTask && linkedTasks.parentTask.status !== 'completed' && (
+                            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md">
+                                <AlertTriangle size={14} className="text-red-600 dark:text-red-400" />
+                                <span className="text-[11px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wider">Blocked By:</span>
+                                <a href={`/tasks/${linkedTasks.parentTask.id}`} className="text-[12px] font-semibold text-slate-800 dark:text-slate-200 hover:text-[#ea580c] dark:hover:text-[#ea580c] transition-colors hover:underline">
+                                    {linkedTasks.parentTask.title}
+                                </a>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 <div className="flex items-center gap-3 shrink-0">
@@ -376,6 +451,64 @@ const TaskDetails = () => {
                         <p className="text-[15px] leading-relaxed text-slate-600 dark:text-slate-300 font-medium">
                             {task.description}
                         </p>
+                    </Card>
+
+                    {/* Subtasks Checklist Card */}
+                    <Card className="p-6">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-3">
+                                <CheckSquare size={20} className="text-[#ea580c] dark:text-[#f97316]" />
+                                <h2 className="text-lg font-bold text-[#0f172a] dark:text-white">Subtasks Checklist</h2>
+                            </div>
+                            {subtasks.length > 0 && (
+                                <span className="text-[11px] font-bold text-slate-500 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-full">
+                                    {subtasks.filter(s => s.completed).length} / {subtasks.length} Completed
+                                </span>
+                            )}
+                        </div>
+
+                        {subtasks.length > 0 && (
+                            <div className="mb-4 w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                                <div
+                                    className="h-full bg-emerald-500 transition-all duration-500"
+                                    style={{ width: `${Math.round((subtasks.filter(s => s.completed).length / subtasks.length) * 100)}%` }}
+                                ></div>
+                            </div>
+                        )}
+
+                        <div className="space-y-2 mb-4">
+                            {subtasks.map(subtask => (
+                                <div key={subtask.id} className="flex items-center gap-3 group">
+                                    <button
+                                        onClick={() => handleToggleSubtask(subtask.id)}
+                                        className="text-slate-400 hover:text-[#ea580c] transition-colors shrink-0 focus:outline-none"
+                                    >
+                                        {subtask.completed ? <CheckSquare size={18} className="text-emerald-500" /> : <Square size={18} />}
+                                    </button>
+                                    <span className={`text-[14px] font-medium transition-colors ${subtask.completed ? 'text-slate-400 line-through' : 'text-slate-700 dark:text-slate-300'}`}>
+                                        {subtask.title}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="flex items-center gap-2 mt-2 pt-4 border-t border-slate-100 dark:border-slate-800">
+                            <button
+                                onClick={handleAddSubtask}
+                                disabled={isAddingSubtask || !newSubtaskTitle.trim()}
+                                className="text-slate-400 hover:text-[#ea580c] transition-colors disabled:opacity-50"
+                            >
+                                {isAddingSubtask ? <Loader2 size={18} className="animate-spin" /> : <Plus size={18} />}
+                            </button>
+                            <input
+                                type="text"
+                                value={newSubtaskTitle}
+                                onChange={(e) => setNewSubtaskTitle(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleAddSubtask()}
+                                placeholder="Add new subtask..."
+                                className="flex-1 bg-transparent text-sm focus:outline-none text-slate-800 dark:text-slate-200 placeholder:text-slate-400"
+                            />
+                        </div>
                     </Card>
 
                     {/* Key Information Card */}
@@ -419,9 +552,14 @@ const TaskDetails = () => {
 
                                 <div className="space-y-4">
                                     {linkedTasks.parentTask && (
-                                        <div className="bg-white dark:bg-slate-800 p-4 rounded-lg border border-slate-200 dark:border-slate-700">
-                                            <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">Continuation Of</p>
-                                            <a href={`/tasks/${linkedTasks.parentTask.id}`} className="text-[#0f172a] dark:text-slate-200 font-semibold text-sm hover:text-[#ea580c] transition-colors flex items-center gap-2">
+                                        <div className={`p-4 rounded-lg border ${linkedTasks.parentTask.status !== 'completed' ? 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-900/30' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'}`}>
+                                            <div className="flex items-center gap-2 mb-1.5">
+                                                {linkedTasks.parentTask.status !== 'completed' ? <AlertTriangle size={14} className="text-red-500" /> : <LinkIcon size={14} className="text-[#ea580c] dark:text-[#f97316]" />}
+                                                <p className={`text-[11px] font-bold uppercase tracking-widest ${linkedTasks.parentTask.status !== 'completed' ? 'text-red-500' : 'text-slate-400 dark:text-slate-500'}`}>
+                                                    {linkedTasks.parentTask.status !== 'completed' ? 'Blocked By (Dependency)' : 'Continuation Of'}
+                                                </p>
+                                            </div>
+                                            <a href={`/tasks/${linkedTasks.parentTask.id}`} className="text-[#0f172a] dark:text-slate-200 font-semibold text-sm hover:text-[#ea580c] transition-colors flex items-center gap-2 mt-1">
                                                 {linkedTasks.parentTask.title}
                                                 <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${linkedTasks.parentTask.status === 'completed' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
                                                     }`}>

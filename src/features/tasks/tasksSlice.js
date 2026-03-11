@@ -69,7 +69,24 @@ const tasksSlice = createSlice({
         status: 'idle', // 'idle' | 'loading' | 'succeeded' | 'failed'
         error: null,
     },
-    reducers: {},
+    reducers: {
+        taskAdded: (state, action) => {
+            // Prevent duplicates if thunk already added it
+            const exists = state.items.find(t => t.id === action.payload.id);
+            if (!exists) {
+                state.items.unshift(action.payload);
+            }
+        },
+        taskUpdated: (state, action) => {
+            const index = state.items.findIndex(t => t.id === action.payload.id);
+            if (index !== -1) {
+                state.items[index] = { ...state.items[index], ...action.payload };
+            }
+        },
+        taskDeleted: (state, action) => {
+            state.items = state.items.filter(t => t.id !== action.payload);
+        }
+    },
     extraReducers: (builder) => {
         builder
             // Fetch Tasks
@@ -124,5 +141,7 @@ const tasksSlice = createSlice({
             });
     },
 });
+
+export const { taskAdded, taskUpdated, taskDeleted } = tasksSlice.actions;
 
 export default tasksSlice.reducer;

@@ -110,6 +110,32 @@ export const taskService = {
     },
 
     /**
+     * Helper to attach parent task statuses for list views
+     */
+    _attachParentStatuses: async (tasks) => {
+        const parentIds = [...new Set(tasks.map(t => t.parent_task_id).filter(Boolean))];
+        if (parentIds.length === 0) return tasks;
+
+        try {
+            const { data } = await supabase.from('tasks').select('id, status').in('id', parentIds);
+            if (!data) return tasks;
+
+            const statusMap = data.reduce((acc, t) => {
+                acc[t.id] = t.status;
+                return acc;
+            }, {});
+
+            return tasks.map(t => ({
+                ...t,
+                parent_status: t.parent_task_id ? statusMap[t.parent_task_id] : null
+            }));
+        } catch (err) {
+            console.error("Failed to attach parent statuses:", err);
+            return tasks;
+        }
+    },
+
+    /**
      * For Managers: Fetch only tasks created by this manager
      */
     getAllTasks: async (managerId) => {
@@ -121,7 +147,7 @@ export const taskService = {
             .order('created_at', { ascending: false });
 
         if (error) throw new Error(error.message);
-        return data;
+        return await taskService._attachParentStatuses(data || []);
     },
 
     /**
@@ -136,7 +162,7 @@ export const taskService = {
             .order('created_at', { ascending: false });
 
         if (error) throw new Error(error.message);
-        return data;
+        return await taskService._attachParentStatuses(data || []);
     },
 
     /**
@@ -239,6 +265,60 @@ export const taskService = {
 
         if (error) throw new Error(error.message);
         return data || [];
+    },
+
+    /**
+     * For Managers: Fetch employees assigned to this manager along with task stats
+     */
+    getTeamWithStats: async (managerId) => {
+        // 1. Get employees
+        const team = await taskService.getMyTeam(managerId);
+        if (!team.length) return [];
+
+        const employeeIds = team.map(emp => emp.id);
+
+        // 2. Get all tasks associated with these employees (assigned_to)
+        // Only counting active & archived together might be needed, here we'll grab all tasks they are assigned to
+        const { data: tasks, error } = await supabase
+            .from('tasks')
+            .select('id, assigned_to, status, due_date, completed_at')
+            .in('assigned_to', employeeIds);
+
+        if (error) throw new Error(error.message);
+
+        // 3. Aggregate stats per employee
+        return team.map(emp => {
+            const empTasks = (tasks || []).filter(t => t.assigned_to === emp.id);
+            const totalAssigned = empTasks.length;
+            const completedTasks = empTasks.filter(t => t.status === 'completed');
+
+            let completedOnTime = 0;
+            completedTasks.forEach(t => {
+                if (!t.due_date) {
+                    completedOnTime++;
+                } else {
+                    const due = new Date(t.due_date).getTime();
+                    const completed = t.completed_at ? new Date(t.completed_at).getTime() : new Date().getTime();
+                    if (completed <= due) {
+                        completedOnTime++;
+                    }
+                }
+            });
+
+            // Calculate Reliability Score
+            const reliabilityScore = totalAssigned > 0
+                ? Math.round((completedOnTime / totalAssigned) * 100)
+                : 100; // default 100 if no tasks ever assigned (or 0 depending on philosophy)
+
+            return {
+                ...emp,
+                stats: {
+                    assigned: totalAssigned,
+                    completed: completedTasks.length,
+                    reliabilityScore: reliabilityScore
+                }
+            };
+        });
     },
 
     /**
@@ -671,10 +751,585 @@ export const taskService = {
                         notifMessage,
                         notifType
                     );
-                } catch (e) {
+                } catch {
                     // Silently skip — don't interrupt the loop
                 }
             }
         }
+    },
+
+    /**
+     * For Managers: Task Productivity Heatmap Data
+     * Groups task creation/completion events by day-of-week (0=Sun) and hour.
+     */
+    getTaskHeatmapData: async (managerId) => {
+        const { data: tasks, error } = await supabase
+            .from('tasks')
+            .select('id, created_at, completed_at, status')
+            .eq('manager_id', managerId)
+            .eq('is_archived', false);
+
+        if (error) throw new Error(error.message);
+        if (!tasks || tasks.length === 0) return null;
+
+        // Days: 0=Sun,1=Mon,...,6=Sat. Hours: 8-20 (business hours)
+        const HOURS = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
+        const DAYS = [1, 2, 3, 4, 5, 6, 0]; // Mon-Sat-Sun for display
+
+        // Build a map: `${day}_${hour}` -> count
+        const countMap = {};
+        DAYS.forEach(d => HOURS.forEach(h => { countMap[`${d}_${h}`] = 0; }));
+
+        const addEvent = (isoDate) => {
+            if (!isoDate) return;
+            const dt = new Date(isoDate);
+            const day = dt.getDay();
+            const hour = dt.getHours();
+            if (hour >= 8 && hour <= 20) {
+                const key = `${day}_${hour}`;
+                countMap[key] = (countMap[key] || 0) + 1;
+            }
+        };
+
+        tasks.forEach(t => {
+            addEvent(t.created_at);
+            if (t.status === 'completed') addEvent(t.completed_at);
+        });
+
+        // Normalise to 0-100 for colour intensity
+        const maxVal = Math.max(...Object.values(countMap), 1);
+        const cells = DAYS.map(day => ({
+            day,
+            hours: HOURS.map(hour => ({
+                hour,
+                count: countMap[`${day}_${hour}`],
+                intensity: Math.round((countMap[`${day}_${hour}`] / maxVal) * 100)
+            }))
+        }));
+
+        // Auto-generate peak insights
+        let peakDay = null, peakHour = null, peakCount = 0;
+        let lowestWeekdayDay = null, lowestVal = Infinity;
+        const dayActivity = {};
+        const hourActivity = {};
+
+        Object.entries(countMap).forEach(([key, val]) => {
+            const [d, h] = key.split('_').map(Number);
+            dayActivity[d] = (dayActivity[d] || 0) + val;
+            hourActivity[h] = (hourActivity[h] || 0) + val;
+            if (val > peakCount) { peakCount = val; peakDay = d; peakHour = h; }
+        });
+
+        // Lowest weekday (Mon-Fri)
+        [1, 2, 3, 4, 5].forEach(d => {
+            if ((dayActivity[d] || 0) < lowestVal) { lowestVal = dayActivity[d] || 0; lowestWeekdayDay = d; }
+        });
+
+        const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const FMT_HOUR = (h) => h < 12 ? `${h} AM` : h === 12 ? '12 PM' : `${h - 12} PM`;
+
+        const weekendActivity = (dayActivity[0] || 0) + (dayActivity[6] || 0);
+        const weekdayActivity = [1, 2, 3, 4, 5].reduce((s, d) => s + (dayActivity[d] || 0), 0);
+        const peakHourOfDay = Object.entries(hourActivity).sort((a, b) => b[1] - a[1])[0];
+
+        const insights = [
+            peakDay !== null && peakCount > 0
+                ? `${DAY_NAMES[peakDay]} at ${FMT_HOUR(peakHour)} is the most productive hour.`
+                : 'Not enough data to determine peak hour.',
+            lowestWeekdayDay !== null
+                ? `${DAY_NAMES[lowestWeekdayDay]} shows the lowest weekday activity.`
+                : null,
+            weekendActivity < weekdayActivity * 0.1
+                ? 'Weekend activity is minimal — team works weekdays.'
+                : 'Notable weekend activity detected.',
+            peakHourOfDay && parseInt(peakHourOfDay[0]) < 12
+                ? 'Mornings show peak performance overall.'
+                : 'Afternoons show peak performance overall.',
+            weekdayActivity > 0
+                ? `${DAY_NAMES[peakDay]} consistently drives the highest throughput.`
+                : null
+        ].filter(Boolean);
+
+        return { cells, HOURS, insights, maxVal, DAY_NAMES };
+    },
+
+    /**
+     * For Managers: Task Category Analytics
+     * Derives category from task title keywords since no DB category column exists.
+     */
+
+    getTaskCategoryAnalytics: async (managerId) => {
+        const { data: tasks, error } = await supabase
+            .from('tasks')
+            .select('id, title, status, due_date, completed_at, created_at, priority')
+            .eq('manager_id', managerId)
+            .eq('is_archived', false);
+
+        if (error) throw new Error(error.message);
+        if (!tasks || tasks.length === 0) return null;
+
+        // Keyword-based category classification
+        const CATEGORIES = {
+            'Frontend': ['frontend', 'ui', 'css', 'html', 'react', 'design', 'interface', 'style', 'layout'],
+            'Development': ['backend', 'api', 'server', 'develop', 'logic', 'function', 'code', 'feature', 'build', 'module', 'service'],
+            'Database': ['database', 'db', 'sql', 'schema', 'migration', 'supabase', 'query', 'table', 'data', 'records'],
+            'Research': ['research', 'investigate', 'analysis', 'analyze', 'study', 'explore', 'discover', 'spike', 'poc', 'review'],
+            'Documentation': ['document', 'docs', 'readme', 'guide', 'wiki', 'notes', 'spec', 'write', 'update docs'],
+            'Meetings': ['meeting', 'meet', 'sync', 'standup', 'sprint', 'review', 'planning', 'retrospective', 'demo'],
+            'Admin': ['admin', 'setup', 'configure', 'deploy', 'manage', 'permission', 'access', 'account', 'report', 'onboard']
+        };
+
+        const CATEGORY_COLORS = {
+            'Frontend': '#ef4444',
+            'Development': '#3b82f6',
+            'Database': '#8b5cf6',
+            'Research': '#06b6d4',
+            'Documentation': '#10b981',
+            'Meetings': '#f97316',
+            'Admin': '#94a3b8'
+        };
+
+        const classifyTask = (title = '') => {
+            const lowerTitle = title.toLowerCase();
+            for (const [cat, keywords] of Object.entries(CATEGORIES)) {
+                if (keywords.some(kw => lowerTitle.includes(kw))) return cat;
+            }
+            return 'Development'; // default category if no match
+        };
+
+        const now = new Date().getTime();
+        const catMap = {};
+
+        tasks.forEach(task => {
+            const cat = classifyTask(task.title);
+            if (!catMap[cat]) {
+                catMap[cat] = {
+                    name: cat,
+                    total: 0,
+                    completed: 0,
+                    completedOnTime: 0,
+                    totalDelayMs: 0,
+                    delayCount: 0,
+                    color: CATEGORY_COLORS[cat]
+                };
+            }
+
+            catMap[cat].total++;
+
+            if (task.status === 'completed') {
+                catMap[cat].completed++;
+                const compTime = new Date(task.completed_at || task.created_at).getTime();
+
+                if (task.due_date) {
+                    const dueTime = new Date(task.due_date).getTime();
+                    if (compTime <= dueTime) {
+                        catMap[cat].completedOnTime++;
+                    } else {
+                        catMap[cat].totalDelayMs += compTime - dueTime;
+                        catMap[cat].delayCount++;
+                    }
+                } else {
+                    catMap[cat].completedOnTime++;
+                }
+            } else if (task.due_date) {
+                const dueTime = new Date(task.due_date).getTime();
+                if (now > dueTime) {
+                    catMap[cat].totalDelayMs += now - dueTime;
+                    catMap[cat].delayCount++;
+                }
+            }
+        });
+
+        // Build final category list
+        const categories = Object.values(catMap).map(cat => {
+            const completionRate = cat.total > 0 ? Math.round((cat.completed / cat.total) * 100) : 0;
+            const reliabilityScore = cat.total > 0
+                ? Math.round((cat.completedOnTime / cat.total) * 100)
+                : 100;
+            const avgDelayDays = cat.delayCount > 0
+                ? (cat.totalDelayMs / cat.delayCount / (1000 * 60 * 60 * 24)).toFixed(1)
+                : 0;
+            return {
+                name: cat.name,
+                total: cat.total,
+                completed: cat.completed,
+                completionRate,
+                reliabilityScore,
+                avgDelayDays: parseFloat(avgDelayDays),
+                color: cat.color
+            };
+        }).sort((a, b) => b.total - a.total);
+
+        // Derived top-level insights
+        const mostDelayed = [...categories].sort((a, b) => b.avgDelayDays - a.avgDelayDays)[0];
+        const mostReliable = [...categories].sort((a, b) => b.reliabilityScore - a.reliabilityScore)[0];
+
+        const totalCompleted = tasks.filter(t => t.status === 'completed').length;
+        let totalCompletionMs = 0;
+        let completionCount = 0;
+        tasks.forEach(t => {
+            if (t.status === 'completed' && t.completed_at && t.created_at) {
+                const dur = new Date(t.completed_at).getTime() - new Date(t.created_at).getTime();
+                if (dur > 0) {
+                    totalCompletionMs += dur;
+                    completionCount++;
+                }
+            }
+        });
+        const avgCompletionDays = completionCount > 0
+            ? (totalCompletionMs / completionCount / (1000 * 60 * 60 * 24)).toFixed(1)
+            : '—';
+
+        // Task type distribution (for donut chart)
+        const distribution = categories.map(cat => ({
+            name: cat.name,
+            value: cat.total,
+            pct: tasks.length > 0 ? Math.round((cat.total / tasks.length) * 100) : 0,
+            color: cat.color
+        }));
+
+        // Efficiency Insights (auto-generated)
+        const insights = [];
+        if (mostDelayed) {
+            insights.push(`${mostDelayed.name} tasks average ${mostDelayed.avgDelayDays}d delay — highest on the team.`);
+        }
+        const highComplRate = [...categories].sort((a, b) => b.completionRate - a.completionRate)[0];
+        if (highComplRate && highComplRate !== mostDelayed) {
+            insights.push(`${highComplRate.name} leads with ${highComplRate.completionRate}% completion rate.`);
+        }
+        const biggestVolume = categories[0];
+        if (biggestVolume) {
+            const pct = tasks.length > 0 ? Math.round((biggestVolume.total / tasks.length) * 100) : 0;
+            insights.push(`${biggestVolume.name} makes up ${pct}% of total task volume.`);
+        }
+        insights.push(`${totalCompleted} of ${tasks.length} total tasks completed overall.`);
+
+        return {
+            totalTasks: tasks.length,
+            mostDelayed: mostDelayed?.name || '—',
+            mostReliable: mostReliable?.name || '—',
+            mostReliableScore: mostReliable?.reliabilityScore || 0,
+            avgCompletionDays,
+            distribution,
+            Categories: categories,
+            insights
+        };
+    },
+
+    /**
+     * For Managers: Aggregated Performance Report Data (Team-level)
+     */
+    getTeamPerformanceReport: async (managerId) => {
+        // 1. Get Team
+        const { data: teamData, error: teamErr } = await supabase
+            .from('users')
+            .select('id, name, email')
+            .eq('role', 'employee')
+            .eq('manager_id', managerId);
+        if (teamErr) throw new Error(teamErr.message);
+
+        const teamIds = (teamData || []).map(u => u.id);
+        if (teamIds.length === 0) return null;
+
+        // 2. Get Tasks
+        const { data: tasks, error: taskErr } = await supabase
+            .from('tasks')
+            .select('id, assigned_to, status, due_date, completed_at, created_at, title')
+            .in('assigned_to', teamIds);
+        if (taskErr) throw new Error(taskErr.message);
+
+        const now = new Date();
+        const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+
+        let tasksCompletedThisMonth = 0;
+        let totalDelayMs = 0;
+        let delayedTaskCount = 0;
+
+        // Reliability per employee
+        const empStatsMap = {};
+        teamData.forEach(emp => {
+            empStatsMap[emp.id] = { ...emp, assigned: 0, completedOnTime: 0, totalDelay: 0, delayCount: 0 };
+        });
+
+        // 6-month historical tracking structure
+        const last6Months = [];
+        for (let i = 5; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            last6Months.push({
+                monthLabel: d.toLocaleString('default', { month: 'short' }),
+                monthStart: d.getTime(),
+                monthEnd: new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59).getTime(),
+                assigned: 0,
+                completedOnTime: 0,
+                completed: 0,
+                totalDelayMs: 0,
+                delayCount: 0
+            });
+        }
+
+        tasks.forEach(task => {
+            if (!task.assigned_to) return;
+            const empStat = empStatsMap[task.assigned_to];
+            if (!empStat) return;
+
+            empStat.assigned++;
+
+            let isCompletedOnTime = false;
+            let delayMs = 0;
+
+            if (task.status === 'completed') {
+                const compTime = new Date(task.completed_at || task.updated_at || task.created_at).getTime();
+
+                if (compTime >= currentMonthStart) {
+                    tasksCompletedThisMonth++;
+                }
+
+                if (task.due_date) {
+                    const dueTime = new Date(task.due_date).getTime();
+                    if (compTime <= dueTime) {
+                        isCompletedOnTime = true;
+                        empStat.completedOnTime++;
+                    } else {
+                        delayMs = compTime - dueTime;
+                        empStat.totalDelay += delayMs;
+                        empStat.delayCount++;
+                        totalDelayMs += delayMs;
+                        delayedTaskCount++;
+                    }
+                } else {
+                    isCompletedOnTime = true;
+                    empStat.completedOnTime++;
+                }
+
+                // Bucket into historical months based on completion time
+                const monthBucket = last6Months.find(m => compTime >= m.monthStart && compTime <= m.monthEnd);
+                if (monthBucket) {
+                    monthBucket.completed++;
+                    if (isCompletedOnTime) monthBucket.completedOnTime++;
+                    if (delayMs > 0) {
+                        monthBucket.totalDelayMs += delayMs;
+                        monthBucket.delayCount++;
+                    }
+                }
+            } else if (task.due_date) {
+                // Not completed, check if currently delayed
+                const dueTime = new Date(task.due_date).getTime();
+                if (now.getTime() > dueTime) {
+                    delayMs = now.getTime() - dueTime;
+                    empStat.totalDelay += delayMs;
+                    empStat.delayCount++;
+                    totalDelayMs += delayMs;
+                    delayedTaskCount++;
+                }
+            }
+
+            // Bucket assignments into historical months based on creation time
+            const createdTime = new Date(task.created_at).getTime();
+            const createdMonthBucket = last6Months.find(m => createdTime >= m.monthStart && createdTime <= m.monthEnd);
+            if (createdMonthBucket) createdMonthBucket.assigned++;
+        });
+
+        // 3. Process formatted metrics
+        const reliabilityDistribution = Object.values(empStatsMap).map(emp => {
+            const rel = emp.assigned > 0 ? Math.round((emp.completedOnTime / emp.assigned) * 100) : 100;
+            return {
+                name: emp.name?.split(' ')[0] || emp.email?.split('@')[0],
+                fullName: emp.name || emp.email,
+                reliability: rel,
+                id: emp.id
+            };
+        });
+
+        const teamAvgReliability = reliabilityDistribution.length > 0
+            ? Math.round(reliabilityDistribution.reduce((acc, curr) => acc + curr.reliability, 0) / reliabilityDistribution.length)
+            : 0;
+
+        const avgTeamDelayMs = delayedTaskCount > 0 ? (totalDelayMs / delayedTaskCount) : 0;
+        const avgTeamDelayDays = (avgTeamDelayMs / (1000 * 60 * 60 * 24)).toFixed(1);
+
+        const historicalPerformance = last6Months.map(m => {
+            const rel = m.assigned > 0 ? Math.round((m.completedOnTime / m.assigned) * 100) : (m.completed > 0 ? 100 : 0);
+            const avgDelayDays = m.delayCount > 0 ? (m.totalDelayMs / m.delayCount / (1000 * 60 * 60 * 24)).toFixed(1) : 0;
+            return {
+                month: m.monthLabel,
+                teamReliability: rel,
+                tasksCompleted: m.completed,
+                averageDelay: `${avgDelayDays}d`
+            };
+        });
+
+        const sortedPerformers = [...reliabilityDistribution].sort((a, b) => b.reliability - a.reliability);
+        const topPerformer = sortedPerformers.length > 0 ? `${sortedPerformers[0].fullName} (${sortedPerformers[0].reliability}%)` : 'N/A';
+        const bottomPerformer = sortedPerformers.length > 0 ? sortedPerformers[sortedPerformers.length - 1] : null;
+
+        let criticalTrend = 'Stable performance across the team.';
+        let actionItem = 'Continue current operational workflows.';
+
+        if (bottomPerformer && bottomPerformer.reliability < 70) {
+            criticalTrend = `Low reliability detected for ${bottomPerformer.name} (${bottomPerformer.reliability}%).`;
+            actionItem = `Schedule 1-on-1 with ${bottomPerformer.name} to discuss blockers.`;
+        } else if (avgTeamDelayDays > 2) {
+            criticalTrend = `High average team delay (${avgTeamDelayDays} days).`;
+            actionItem = 'Review task scoping and due date feasibility.';
+        }
+
+        return {
+            teamAvgReliability,
+            tasksCompletedThisMonth,
+            avgTeamDelay: `${avgTeamDelayDays} days`,
+            reliabilityDistribution,
+            leaderboard: sortedPerformers.slice(0, 3).map((p, idx) => ({ rank: idx + 1, name: p.fullName, reliability: p.reliability })),
+            historicalPerformance,
+            insights: { topPerformer, criticalTrend, actionItem }
+        };
+    },
+
+    /**
+     * For Managers: Specific Employee Performance Profile Data
+     */
+    getEmployeePerformanceProfile: async (employeeId) => {
+        // 1. Get Employee Details
+        const { data: user, error: userErr } = await supabase
+            .from('users')
+            .select('id, name, email')
+            .eq('id', employeeId)
+            .single();
+        if (userErr) throw new Error(userErr.message);
+
+        // 2. Get Tasks
+        const { data: tasks, error: taskErr } = await supabase
+            .from('tasks')
+            .select('*')
+            .eq('assigned_to', employeeId)
+            .order('created_at', { ascending: false });
+        if (taskErr) throw new Error(taskErr.message);
+
+        const now = new Date();
+        const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1).getTime();
+
+        let tasksCompletedLast6Mo = 0;
+        let totalDelayMs = 0;
+        let delayedTaskCount = 0;
+        let currentCompletedOnTime = 0;
+        let currentAssigned = 0;
+
+        // 6-month historical tracking structure for Line Chart
+        const last6Months = [];
+        for (let i = 5; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            last6Months.push({
+                monthLabel: d.toLocaleString('default', { month: 'short' }),
+                monthStart: d.getTime(),
+                monthEnd: new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59).getTime(),
+                assigned: 0,
+                completedOnTime: 0
+            });
+        }
+
+        const recentTasks = [];
+
+        tasks.forEach(task => {
+            currentAssigned++;
+            let delayMs = 0;
+            let formattedDelay = '-';
+
+            if (task.status === 'completed') {
+                const compTime = new Date(task.completed_at || task.updated_at || task.created_at).getTime();
+
+                if (compTime >= sixMonthsAgo) {
+                    tasksCompletedLast6Mo++;
+                }
+
+                if (task.due_date) {
+                    const dueTime = new Date(task.due_date).getTime();
+                    if (compTime <= dueTime) {
+                        currentCompletedOnTime++;
+                        formattedDelay = '0h';
+                    } else {
+                        delayMs = compTime - dueTime;
+                        totalDelayMs += delayMs;
+                        delayedTaskCount++;
+                        const hours = Math.floor(delayMs / (1000 * 60 * 60));
+                        formattedDelay = `+${hours}h`;
+                    }
+                } else {
+                    currentCompletedOnTime++;
+                    formattedDelay = '0h';
+                }
+
+                // Bucket into historical months
+                const monthBucket = last6Months.find(m => compTime >= m.monthStart && compTime <= m.monthEnd);
+                if (monthBucket) {
+                    monthBucket.completedOnTime++;
+                }
+            } else if (task.due_date) {
+                // Check if delayed while in progress/pending
+                const dueTime = new Date(task.due_date).getTime();
+                if (now.getTime() > dueTime) {
+                    delayMs = now.getTime() - dueTime;
+                    totalDelayMs += delayMs;
+                    delayedTaskCount++;
+                    const hours = Math.floor(delayMs / (1000 * 60 * 60));
+                    formattedDelay = `+${hours}h`;
+                }
+            }
+
+            // Assignment buckets
+            const createdTime = new Date(task.created_at).getTime();
+            const createdMonthBucket = last6Months.find(m => createdTime >= m.monthStart && createdTime <= m.monthEnd);
+            if (createdMonthBucket) createdMonthBucket.assigned++;
+
+            // Include in recent tasks formatted list (max 10)
+            if (recentTasks.length < 10) {
+                recentTasks.push({
+                    id: task.id,
+                    shortId: `#TASK-${task.id.substring(0, 4).toUpperCase()}`,
+                    title: task.title,
+                    status: task.status,
+                    dueDate: task.due_date ? new Date(task.due_date).toISOString().split('T')[0] : '-',
+                    delay: formattedDelay
+                });
+            }
+        });
+
+        const currentReliability = currentAssigned > 0 ? Math.round((currentCompletedOnTime / currentAssigned) * 100) : 100;
+
+        const avgDelayHours = delayedTaskCount > 0 ? Math.round(totalDelayMs / delayedTaskCount / (1000 * 60 * 60)) : 0;
+        const avgDelayStr = avgDelayHours > 24 ? `${Math.floor(avgDelayHours / 24)}d ${avgDelayHours % 24}h` : `${avgDelayHours}h`;
+
+        const performanceTrends = last6Months.map(m => {
+            const rel = m.assigned > 0 ? Math.round((m.completedOnTime / m.assigned) * 100) : 100; // default to 100 if no tasks
+            return {
+                month: m.monthLabel,
+                reliability: m.assigned > 0 || m.completedOnTime > 0 ? rel : null // Leave null to break line or show gaps if strictly wanted, but using 100 or previous is safer. Let's use rel but if assigned is 0 we'll connect the dots loosely in UI or just show 100%. Actually for Recharts, if it's 0 it drops. Let's use the cumulative or just the month's.
+            };
+        });
+
+        // Clean up performance trends (if a month has 0 assigned, inherit previous month's reliability to make a smooth line, or start at 100)
+        let lastKnownRel = 100;
+        performanceTrends.forEach(pt => {
+            if (pt.reliability !== null) {
+                lastKnownRel = pt.reliability;
+            } else {
+                pt.reliability = lastKnownRel;
+            }
+        });
+
+        return {
+            employee: {
+                id: user.id,
+                name: user.name || user.email.split('@')[0],
+                email: user.email,
+                designation: 'Software Engineer', // Based on mockup, would normally come from DB
+                status: 'Active'
+            },
+            stats: {
+                tasksCompletedLast6Mo,
+                avgDelay: avgDelayStr,
+                currentReliability
+            },
+            performanceTrends,
+            recentTasks
+        };
     }
 };

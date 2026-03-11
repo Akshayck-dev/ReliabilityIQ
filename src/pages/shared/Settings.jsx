@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import {
     User, Mail, Shield, Sun, Moon, Bell, Clock, ListChecks,
-    Calendar, LogOut, Loader2, Check, ChevronDown, Archive, Trash2, AlertTriangle
+    Calendar, LogOut, Loader2, Check, ChevronDown
 } from 'lucide-react';
 import ConfirmModal from '../../components/ui/ConfirmModal';
 
@@ -26,7 +26,7 @@ const Toggle = ({ enabled, onChange, label, description, icon: Icon }) => (
         </div>
         <button
             onClick={() => onChange(!enabled)}
-            className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${enabled ? 'bg-[#ea580c]' : 'bg-slate-300 dark:bg-slate-600'
+            className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${enabled ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-600'
                 }`}
         >
             <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200 ${enabled ? 'translate-x-5' : 'translate-x-0'

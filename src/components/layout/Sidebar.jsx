@@ -15,10 +15,10 @@ const Sidebar = () => {
 
     const navItems = [
         { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['manager', 'employee'] },
-        { path: '/employees', icon: Users, label: 'Employees', roles: ['manager'] },
-        { path: '/tasks', icon: ListTodo, label: 'Task Management', roles: ['manager', 'employee'] },
+        { path: '/employees', icon: Users, label: 'Team', roles: ['manager'] },
+        { path: '/performance', icon: LineChart, label: 'Performance', roles: ['manager'] },
+        { path: '/tasks', icon: ListTodo, label: 'Tasks', roles: ['manager', 'employee'] },
         { path: '/reports', icon: BarChart2, label: 'Reports', roles: ['manager'] },
-        { path: '/analytics', icon: LineChart, label: 'Analytics', roles: ['manager'] },
         { path: '/settings', icon: Settings, label: 'Settings', roles: ['manager', 'employee'] }
     ];
 
