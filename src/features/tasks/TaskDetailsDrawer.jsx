@@ -16,6 +16,7 @@ const TaskDetailsDrawer = ({ taskId, onClose }) => {
     const [originalTask, setOriginalTask] = useState(null);
     const [employees, setEmployees] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [fetchError, setFetchError] = useState(null);
 
     // Subtasks & Comments
     const [subtasks, setSubtasks] = useState([]);
@@ -30,33 +31,46 @@ const TaskDetailsDrawer = ({ taskId, onClose }) => {
         const fetchData = async () => {
             if (!taskId) return;
             setLoading(true);
+            setFetchError(null);
             try {
-                const [taskData, teamData] = await Promise.all([
-                    taskService.getTaskById(taskId),
-                    taskService.getEmployees(user.email)
-                ]);
+                // Fetch task directly from Supabase
+                const { data: taskData, error: taskError } = await supabase
+                    .from('tasks')
+                    .select('*')
+                    .eq('id', taskId)
+                    .single();
+
+                if (taskError) throw taskError;
 
                 setTask(taskData);
                 setOriginalTask(taskData);
-                setEmployees(teamData || []);
 
-                // Parse subtasks
+                // Parse subtasks from remarks
                 const existingSubtasksRemark = (taskData.remarks || []).find(r => r.type === 'subtasks');
                 setSubtasks(existingSubtasksRemark ? existingSubtasksRemark.items : []);
 
-                // Parse comments
+                // Parse comments from remarks
                 const userDiscussions = (taskData.remarks || []).filter(r => r.type !== 'system' && r.type !== 'subtasks');
                 setComments(userDiscussions);
 
+                // Fetch employees (non-blocking - don't fail drawer if this errors)
+                try {
+                    const teamData = await taskService.getAvailableEmployees();
+                    setEmployees(teamData || []);
+                } catch {
+                    setEmployees([]);
+                }
+
             } catch (err) {
-                console.error("Failed to fetch:", err);
-                toast.error("Failed to load task details");
+                console.error('Failed to fetch task details:', err);
+                setFetchError(err.message || 'Failed to load task.');
+                toast.error('Failed to load task details');
             } finally {
                 setLoading(false);
             }
         };
         fetchData();
-    }, [taskId, user.email]);
+    }, [taskId]);
 
     const handleFieldChange = (field, value) => {
         setTask(prev => ({ ...prev, [field]: value }));
@@ -103,7 +117,7 @@ const TaskDetailsDrawer = ({ taskId, onClose }) => {
             await taskService.deleteTask(taskId);
             toast.success("Task deleted");
             onClose();
-        } catch (err) {
+        } catch {
             toast.error("Failed to delete task");
         }
     };
@@ -127,15 +141,15 @@ const TaskDetailsDrawer = ({ taskId, onClose }) => {
 
     const persistSubtasks = async (newItems) => {
         try {
-            const tData = await taskService.getTaskById(taskId);
-            const existingSubtasksRemark = (tData.remarks || []).find(r => r.type === 'subtasks');
+            const { data: tData } = await supabase.from('tasks').select('remarks').eq('id', taskId).single();
+            const existingSubtasksRemark = (tData?.remarks || []).find(r => r.type === 'subtasks');
             if (existingSubtasksRemark) {
                 await supabase.from('tasks').update({
                     remarks: tData.remarks.map(r => r.id === existingSubtasksRemark.id ? { ...r, items: newItems } : r)
                 }).eq('id', taskId);
             } else {
                 const newRemarkObj = { id: Date.now().toString(), type: 'subtasks', items: newItems, created_at: new Date().toISOString() };
-                await supabase.from('tasks').update({ remarks: [...(tData.remarks || []), newRemarkObj] }).eq('id', taskId);
+                await supabase.from('tasks').update({ remarks: [...(tData?.remarks || []), newRemarkObj] }).eq('id', taskId);
             }
         } catch (err) {
             console.error("Subtask persist failed", err);
@@ -158,7 +172,7 @@ const TaskDetailsDrawer = ({ taskId, onClose }) => {
             await taskService.addRemarkToTask(taskId, remarkObj);
             setComments(prev => [...prev, remarkObj]);
             setNewComment('');
-        } catch (err) {
+        } catch {
             toast.error("Failed to add comment.");
         }
     };
@@ -174,9 +188,19 @@ const TaskDetailsDrawer = ({ taskId, onClose }) => {
                 </button>
             </div>
 
-            {loading || !task ? (
+            {loading ? (
                 <div className="flex-1 flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ea580c]"></div>
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                </div>
+            ) : fetchError ? (
+                <div className="flex-1 flex flex-col items-center justify-center gap-3 p-8 text-center">
+                    <p className="text-sm font-semibold text-red-500">Failed to load task</p>
+                    <p className="text-xs text-slate-400">{fetchError}</p>
+                    <button onClick={onClose} className="text-sm text-blue-600 hover:underline">Close</button>
+                </div>
+            ) : !task ? (
+                <div className="flex-1 flex items-center justify-center">
+                    <p className="text-sm text-slate-400">Task not found.</p>
                 </div>
             ) : (
                 <div className="flex-1 overflow-y-auto p-6 space-y-6">
@@ -250,8 +274,8 @@ const TaskDetailsDrawer = ({ taskId, onClose }) => {
                                         key={pLevel}
                                         onClick={() => handleFieldChange('priority', pLevel)}
                                         className={`flex-1 text-xs font-semibold py-1 rounded capitalize transition-colors ${isSelected
-                                                ? (pLevel === 'high' ? 'bg-red-500 text-white' : pLevel === 'medium' ? 'bg-amber-500 text-white' : 'bg-green-500 text-white')
-                                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                                            ? (pLevel === 'high' ? 'bg-red-500 text-white' : pLevel === 'medium' ? 'bg-amber-500 text-white' : 'bg-green-500 text-white')
+                                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
                                             }`}
                                     >
                                         {pLevel}
