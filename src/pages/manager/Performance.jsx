@@ -18,6 +18,7 @@ import Card from '../../components/ui/Card';
 import AnalyticsStats from '../../features/analytics/AnalyticsStats';
 import CategoryDistribution from '../../features/analytics/CategoryDistribution';
 import TeamPerformanceGrid from '../../features/analytics/TeamPerformanceGrid';
+import AIInsights from '../../features/analytics/AIInsights';
 
 /* ─── Heatmap Sub-components ────────────────────────────────────────────── */
 const intensityToColor = (intensity) => {
@@ -222,6 +223,9 @@ const Performance = () => {
                     ))}
                 </div>
             </div>
+            
+            {/* AI Intelligence Insights Center */}
+            <AIInsights data={data} />
 
             {/* Global Stats Row */}
             <AnalyticsStats stats={aggregatedMetrics} />
