@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { fetchTasks, assignTask, updateTaskStatus } from './tasksSlice';
@@ -6,13 +6,16 @@ import { AlertCircle, RefreshCw, ClipboardList, Archive, RotateCcw, Loader2, Lis
 import { useAuth } from '../auth/AuthContext';
 import { taskService } from '../../services/taskService';
 import EmptyState from '../../components/ui/EmptyState';
-import PriorityBadge from '../../components/ui/PriorityBadge';
 import { ListTaskRowSkeleton } from '../../components/ui/Skeleton';
 import KanbanBoard from './KanbanBoard';
 import { sortTasksByPriority } from '../../utils/sortTasks';
-import { getDueStatus } from '../../utils/dueDateUtils';
 import toast from 'react-hot-toast';
 import TaskDetailsDrawer from './TaskDetailsDrawer';
+
+// New Redesign Components
+import TaskStats from './TaskStats';
+import TaskFilters from './TaskFilters';
+import TaskListCard from './TaskListCard';
 
 const TasksDashboard = () => {
     const dispatch = useDispatch();
@@ -26,6 +29,12 @@ const TasksDashboard = () => {
     const [archivedLoading, setArchivedLoading] = useState(false);
     const [restoringId, setRestoringId] = useState(null);
     const [selectedTaskId, setSelectedTaskId] = useState(null);
+
+    // Filtering State
+    const [searchQuery, setSearchQuery] = useState('');
+    const [statusFilter, setStatusFilter] = useState('all');
+    const [priorityFilter, setPriorityFilter] = useState('all');
+    const [assigneeFilter, setAssigneeFilter] = useState('all');
 
     useEffect(() => {
         dispatch(fetchTasks({ role, userId: user?.id }));
@@ -70,7 +79,29 @@ const TasksDashboard = () => {
         }
     };
 
-    // Removed FullPageSpinner early return for proper Skeleton rendering
+    // Advanced Filtering Logic
+    const filteredTasks = useMemo(() => {
+        return tasks.filter(task => {
+            // Search Match
+            const searchLower = searchQuery.toLowerCase();
+            const matchesSearch = !searchQuery || 
+                task.title?.toLowerCase().includes(searchLower) || 
+                task.description?.toLowerCase().includes(searchLower) ||
+                task.id?.toLowerCase().includes(searchLower);
+
+            // Status Match
+            const matchesStatus = statusFilter === 'all' || task.status === statusFilter;
+
+            // Priority Match
+            const matchesPriority = priorityFilter === 'all' || task.priority?.toLowerCase() === priorityFilter.toLowerCase();
+
+            // Assignee Match
+            const matchesAssignee = assigneeFilter === 'all' || task.assigned_to === assigneeFilter;
+
+            return matchesSearch && matchesStatus && matchesPriority && matchesAssignee;
+        });
+    }, [tasks, searchQuery, statusFilter, priorityFilter, assigneeFilter]);
+
     if (status === 'failed') {
         return (
             <div className="flex flex-col items-center justify-center p-8 bg-white dark:bg-slate-900 border border-red-100 dark:border-red-900/30 rounded-xl max-w-lg mx-auto mt-12 shadow-sm text-center">
@@ -91,243 +122,182 @@ const TasksDashboard = () => {
     }
 
     return (
-        <div className="space-y-8">
-            <div className="flex justify-between items-center">
-                <h1 className="text-3xl font-bold text-slate-800 dark:text-white">
-                    {role === 'manager' ? 'Company Tasks 🏢' : 'My Tasks 📝'}
-                </h1>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-10">
+            {/* Header Section */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                <div>
+                    <h1 className="text-3xl font-extrabold text-[#0f172a] dark:text-white tracking-tight">
+                        {role === 'manager' ? 'Company Tasks 🏢' : 'My Workspace 📝'}
+                    </h1>
+                    <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium max-w-lg">
+                        {role === 'manager' 
+                            ? 'Monitor team progress, reassign blocking tasks, and audit completed work.' 
+                            : 'Manage your active assignments and update your status in real-time.'}
+                    </p>
+                </div>
 
-                {/* View Toggle */}
-                {activeTab === 'active' && (
-                    <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg p-1 gap-0.5">
-                        <button
-                            onClick={() => setViewMode('list')}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${viewMode === 'list'
-                                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
-                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
-                                }`}
-                        >
-                            <List size={14} />
-                            List
-                        </button>
-                        <button
-                            onClick={() => setViewMode('kanban')}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${viewMode === 'kanban'
-                                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
-                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
-                                }`}
-                        >
-                            <LayoutGrid size={14} />
-                            Board
-                        </button>
-                    </div>
-                )}
+                <div className="flex items-center gap-3">
+                    {/* View Toggle */}
+                    {activeTab === 'active' && (
+                        <div className="flex items-center bg-slate-100/80 dark:bg-slate-800/60 p-1 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
+                            <button
+                                onClick={() => setViewMode('list')}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === 'list'
+                                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+                                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                                    }`}
+                            >
+                                <List size={14} />
+                                List
+                            </button>
+                            <button
+                                onClick={() => setViewMode('kanban')}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === 'kanban'
+                                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+                                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                                    }`}
+                            >
+                                <LayoutGrid size={14} />
+                                Board
+                            </button>
+                        </div>
+                    )}
+                    
+                    {role === 'manager' && (
+                        <Link to="/assign-task" className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-blue-500/25 active:scale-95">
+                            <Plus size={18} />
+                            Create Task
+                        </Link>
+                    )}
+                </div>
             </div>
 
-            {/* Tab Toggle (Managers Only) */}
-            {role === 'manager' && (
-                <div className="flex items-center gap-2">
-                    <button
-                        onClick={() => setActiveTab('active')}
-                        className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors ${activeTab === 'active'
-                            ? 'bg-slate-900 dark:bg-slate-700 text-white'
-                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-                            }`}
-                    >
-                        <span className="flex items-center gap-1.5">
-                            <ClipboardList size={15} />
+            {/* Stats Dashboard */}
+            <TaskStats tasks={tasks} />
+
+            {/* Controls & Navigation */}
+            <div className="space-y-6">
+                <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-2">
+                    {/* Primary Tabs */}
+                    <div className="flex items-center gap-1">
+                        <button
+                            onClick={() => setActiveTab('active')}
+                            className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all relative ${activeTab === 'active'
+                                ? 'text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/20'
+                                : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                                }`}
+                        >
                             Active Tasks
-                        </span>
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('archived')}
-                        className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors ${activeTab === 'archived'
-                            ? 'bg-slate-900 dark:bg-slate-700 text-white'
-                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-                            }`}
-                    >
-                        <span className="flex items-center gap-1.5">
-                            <Archive size={15} />
-                            Archived
-                            {archivedTasks.length > 0 && activeTab !== 'archived' && (
-                                <span className="ml-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                                    {archivedTasks.length}
-                                </span>
-                            )}
-                        </span>
-                    </button>
-                </div>
-            )}
-
-            {/* ACTIVE TASKS — KANBAN VIEW */}
-            {activeTab === 'active' && viewMode === 'kanban' && (
-                <KanbanBoard
-                    tasks={tasks}
-                    dataStatus={status}
-                    onStatusChange={handleStatusChange}
-                    role={role}
-                    onTaskClick={(id) => setSelectedTaskId(id)}
-                />
-            )}
-
-            {/* ACTIVE TASKS — LIST VIEW */}
-            {activeTab === 'active' && viewMode === 'list' && (
-                <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
-                    <div className="p-6 border-b border-slate-200 dark:border-slate-800">
-                        <h2 className="text-xl font-semibold text-slate-700 dark:text-slate-200">Active Tasks ({tasks.length})</h2>
-                    </div>
-                    <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-[600px] overflow-y-auto">
-                        {status === 'loading' && tasks.length === 0 ? (
-                            [...Array(5)].map((_, i) => <ListTaskRowSkeleton key={i} />)
-                        ) : tasks.length === 0 ? (
-                            <div className="p-8">
-                                <EmptyState
-                                    icon={ClipboardList}
-                                    title="Looks quite empty here"
-                                    description="Let's get things moving. Assign a new task to your team."
-                                    action={
-                                        role === 'manager' && (
-                                            <Link to="/tasks/assign" className="inline-flex items-center gap-2 bg-[#ea580c] hover:bg-orange-600 text-white px-4 py-2 mt-2 rounded-lg text-sm font-bold transition-colors">
-                                                <Plus size={16} />
-                                                Assign New Task
-                                            </Link>
-                                        )
-                                    }
-                                />
-                            </div>
-                        ) : (
-                            sortTasksByPriority(tasks).map(task => (
-                                <div key={task.id} className="p-6 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <h3 className="font-semibold text-lg text-slate-900 dark:text-slate-100">
-                                                <button onClick={() => setSelectedTaskId(task.id)} className="hover:text-[#ea580c] transition-colors relative z-10 block w-fit focus:outline-none">{task.title}</button>
-                                            </h3>
-                                            {task.parent_status && task.parent_status !== 'completed' && (
-                                                <div title="Blocked by dependency" className="flex items-center justify-center p-1 rounded-full bg-red-50 dark:bg-red-900/30 text-red-500 dark:text-red-400">
-                                                    <AlertCircle size={16} />
-                                                </div>
-                                            )}
-                                        </div>
-                                        {task.description && <p className="text-slate-600 dark:text-slate-400 mt-1">{task.description}</p>}
-
-                                        <div className="flex flex-wrap items-center mt-3 gap-3 text-xs font-medium">
-                                            <span className={`px-2.5 py-1 rounded-full ${task.status === 'completed' ? 'bg-green-100 text-green-700' :
-                                                task.status === 'in_progress' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-700'
-                                                }`}>
-                                                {task.status.replace('_', ' ').toUpperCase()}
-                                            </span>
-
-                                            <PriorityBadge priority={task.priority || 'medium'} />
-
-                                            {task.due_date && (() => {
-                                                const dueStatus = getDueStatus(task);
-                                                const dueStyles = {
-                                                    'overdue': 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 font-bold px-2 py-0.5 rounded-full text-[11px]',
-                                                    'due_today': 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 font-bold px-2 py-0.5 rounded-full text-[11px]',
-                                                    'due_soon': 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 font-bold px-2 py-0.5 rounded-full text-[11px]'
-                                                };
-                                                return (
-                                                    <span className={`flex items-center ${dueStatus ? dueStyles[dueStatus] : 'text-slate-500 dark:text-slate-400'}`}>
-                                                        <svg className={`w-4 h-4 mr-1 ${dueStatus ? '' : 'text-amber-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                        </svg>
-                                                        {dueStatus === 'overdue' ? 'Overdue' : dueStatus === 'due_today' ? 'Due Today' : dueStatus === 'due_soon' ? 'Due Soon' : `Due: ${new Date(task.due_date).toLocaleDateString()}`}
-                                                    </span>
-                                                )
-                                            })()}
-
-                                            {role === 'manager' && (
-                                                <span className="text-slate-500 flex items-center">
-                                                    <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                                                    {task.assignee?.email || 'Unassigned'}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    {/* ACTIONS */}
-                                    <div className="flex items-center gap-2">
-
-                                        {/* Employee Actions: Status Updates */}
-                                        {role === 'employee' && task.status !== 'completed' && (
-                                            <>
-                                                {task.status === 'pending' && (
-                                                    <button
-                                                        onClick={() => handleStatusChange(task.id, task.status, 'in_progress')}
-                                                        className="text-sm px-3 py-1.5 border border-amber-500 text-amber-600 rounded-md hover:bg-amber-50"
-                                                    >
-                                                        Start Work
-                                                    </button>
-                                                )}
-                                                <button
-                                                    onClick={() => handleStatusChange(task.id, task.status, 'completed')}
-                                                    className="text-sm px-3 py-1.5 border border-green-500 bg-green-50 text-green-700 rounded-md hover:bg-green-100 transition"
-                                                >
-                                                    Mark Complete
-                                                </button>
-                                            </>
-                                        )}
-
-                                        {/* Manager Actions: Reassign */}
-                                        {role === 'manager' && (
-                                            <select
-                                                className="text-sm border border-slate-300 dark:border-slate-700 rounded-md p-1.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 w-32 focus:ring-blue-500"
-                                                value={task.assigned_to || ''}
-                                                onChange={(e) => handleAssignTask(task.id, e.target.value)}
-                                            >
-                                                <option value="" disabled>Reassign...</option>
-                                                {employees.map(emp => (
-                                                    <option key={emp.id} value={emp.id}>{emp.email.split('@')[0]}</option>
-                                                ))}
-                                            </select>
-                                        )}
-
-                                    </div>
-                                </div>
-                            ))
+                            {activeTab === 'active' && <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full" />}
+                        </button>
+                        {role === 'manager' && (
+                            <button
+                                onClick={() => setActiveTab('archived')}
+                                className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all relative ${activeTab === 'archived'
+                                    ? 'text-amber-600 dark:text-amber-400 bg-amber-50/50 dark:bg-amber-900/20'
+                                    : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                                    }`}
+                            >
+                                Archive Box
+                                {activeTab === 'archived' && <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-amber-600 dark:bg-amber-400 rounded-full" />}
+                            </button>
                         )}
                     </div>
                 </div>
+
+                {/* Advanced Filters */}
+                {activeTab === 'active' && (
+                    <TaskFilters 
+                        searchQuery={searchQuery}
+                        setSearchQuery={setSearchQuery}
+                        statusFilter={statusFilter}
+                        setStatusFilter={setStatusFilter}
+                        priorityFilter={priorityFilter}
+                        setPriorityFilter={setPriorityFilter}
+                        assigneeFilter={assigneeFilter}
+                        setAssigneeFilter={setAssigneeFilter}
+                        employees={employees}
+                    />
+                )}
+            </div>
+
+            {/* ACTIVE TASKS — MAIN VIEWS */}
+            {activeTab === 'active' && (
+                <>
+                    {viewMode === 'kanban' ? (
+                        <KanbanBoard
+                            tasks={filteredTasks}
+                            dataStatus={status}
+                            onStatusChange={handleStatusChange}
+                            role={role}
+                            onTaskClick={(id) => setSelectedTaskId(id)}
+                        />
+                    ) : (
+                        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden min-h-[400px]">
+                            <div className="divide-y divide-slate-50 dark:divide-slate-800/40">
+                                {status === 'loading' && tasks.length === 0 ? (
+                                    [...Array(5)].map((_, i) => <ListTaskRowSkeleton key={i} />)
+                                ) : filteredTasks.length === 0 ? (
+                                    <div className="p-16">
+                                        <EmptyState
+                                            icon={ClipboardList}
+                                            title={searchQuery ? "No matching tasks" : "No active tasks found"}
+                                            description={searchQuery ? "Try adjusting your filters or search terms." : "Ready to scale? Create a new task to get started."}
+                                            action={
+                                                !searchQuery && role === 'manager' && (
+                                                    <Link to="/assign-task" className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 mt-4 rounded-xl text-sm font-bold transition-colors">
+                                                        <Plus size={18} />
+                                                        Assign First Task
+                                                    </Link>
+                                                )
+                                            }
+                                        />
+                                    </div>
+                                ) : (
+                                    sortTasksByPriority(filteredTasks).map(task => (
+                                        <TaskListCard 
+                                            key={task.id} 
+                                            task={task} 
+                                            isManager={role === 'manager'}
+                                            onClick={(id) => setSelectedTaskId(id)} 
+                                        />
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </>
             )}
 
-            {/* ARCHIVED TASKS VIEW (Managers Only) */}
-            {activeTab === 'archived' && role === 'manager' && (
-                <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
-                    <div className="p-6 border-b border-slate-200 dark:border-slate-800">
-                        <h2 className="text-xl font-semibold text-slate-700 dark:text-slate-200">Archived Tasks ({archivedTasks.length})</h2>
-                    </div>
-                    <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-[600px] overflow-y-auto">
+            {/* ARCHIVED TASKS VIEW */}
+            {activeTab === 'archived' && (
+                <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+                    <div className="divide-y divide-slate-100 dark:divide-slate-800">
                         {archivedLoading ? (
-                            <div className="p-12 flex flex-col items-center justify-center">
-                                <Loader2 size={28} className="animate-spin text-slate-400 mb-3" />
-                                <p className="text-sm font-medium text-slate-500">Loading archived tasks...</p>
+                            <div className="p-20 flex flex-col items-center justify-center">
+                                <Loader2 size={32} className="animate-spin text-blue-500 mb-4" />
+                                <p className="text-sm font-bold text-slate-500 uppercase tracking-widest">Loading Repository...</p>
                             </div>
                         ) : archivedTasks.length === 0 ? (
-                            <div className="p-8">
+                            <div className="p-16">
                                 <EmptyState
                                     icon={Archive}
-                                    title="Empty Archive"
-                                    description="Archived tasks will appear here when they are no longer active."
+                                    title="Archive is Empty"
+                                    description="Tasks move here once they are deleted or permanently shelved."
                                 />
                             </div>
                         ) : (
                             archivedTasks.map(task => (
-                                <div key={task.id} className="p-6 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-                                    <div className="flex-1">
-                                        <h3 className="font-semibold text-lg text-slate-900 dark:text-slate-100">
-                                            <button onClick={() => setSelectedTaskId(task.id)} className="hover:text-[#ea580c] transition-colors relative z-10 block w-fit focus:outline-none">{task.title}</button>
+                                <div key={task.id} className="p-6 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-all flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+                                    <div className="flex-1 space-y-2">
+                                        <h3 className="font-bold text-lg text-slate-900 dark:text-slate-100">
+                                            <button onClick={() => setSelectedTaskId(task.id)} className="hover:text-blue-600 transition-colors focus:outline-none">{task.title}</button>
                                         </h3>
-                                        {task.description && <p className="text-slate-600 dark:text-slate-400 mt-1 line-clamp-1">{task.description}</p>}
-                                        <div className="flex flex-wrap items-center mt-3 gap-3 text-xs font-medium">
-                                            <span className={`px-2.5 py-1 rounded-full ${task.status === 'completed' ? 'bg-green-100 text-green-700' :
-                                                task.status === 'in_progress' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-700'
-                                                }`}>
-                                                {task.status.replace('_', ' ').toUpperCase()}
+                                        <div className="flex flex-wrap items-center gap-3">
+                                            <span className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest border border-slate-200/50 dark:border-slate-700/50">
+                                                {task.status.replace('_', ' ')}
                                             </span>
-                                            <span className="px-2.5 py-1 rounded-full bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 font-bold">
-                                                <Archive size={12} className="inline mr-1 -mt-0.5" />
+                                            <span className="px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 text-[10px] font-black uppercase tracking-widest border border-amber-100 dark:border-amber-900/30">
                                                 Archived
                                             </span>
                                         </div>
@@ -335,10 +305,10 @@ const TasksDashboard = () => {
                                     <button
                                         onClick={() => handleRestore(task.id)}
                                         disabled={restoringId === task.id}
-                                        className="flex items-center gap-1.5 text-sm px-4 py-2 border border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="flex items-center gap-2 text-sm px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl shadow-lg shadow-green-500/20 transition-all font-bold disabled:opacity-50"
                                     >
-                                        {restoringId === task.id ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />}
-                                        Restore
+                                        {restoringId === task.id ? <Loader2 size={16} className="animate-spin" /> : <RotateCcw size={16} />}
+                                        Restore Task
                                     </button>
                                 </div>
                             ))
@@ -352,7 +322,6 @@ const TasksDashboard = () => {
                 taskId={selectedTaskId}
                 onClose={() => {
                     setSelectedTaskId(null);
-                    // Refresh data if needed when closing the drawer
                     dispatch(fetchTasks({ role, userId: user?.id }));
                 }}
             />

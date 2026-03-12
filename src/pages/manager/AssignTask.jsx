@@ -261,17 +261,17 @@ const AssignTask = () => {
     };
 
     return (
-        <div className="max-w-6xl mx-auto py-8 lg:px-4">
+        <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
             {/* Breadcrumbs & Header */}
             <div className="mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                 <div>
-                    <div className="text-[13px] font-semibold mb-3 flex items-center gap-2">
-                        <span className="text-slate-400 dark:text-slate-500 hover:text-slate-600 transition-colors cursor-pointer" onClick={() => navigate('/dashboard')}>Dashboard</span>
-                        <span className="text-slate-300 dark:text-slate-600">/</span>
-                        <span className="text-slate-700 dark:text-slate-300">Assign Task</span>
+                    <div className="text-[12px] font-semibold mb-3 flex items-center gap-2">
+                        <span className="text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors cursor-pointer uppercase tracking-wider" onClick={() => navigate('/dashboard')}>Dashboard</span>
+                        <span className="text-slate-300 dark:text-slate-700">/</span>
+                        <span className="text-blue-600 dark:text-blue-400 uppercase tracking-wider">Assign Task</span>
                     </div>
                     <h1 className="text-3xl font-extrabold text-[#0f172a] dark:text-white tracking-tight">Assign New Task</h1>
-                    <p className="text-[14px] text-slate-500 dark:text-slate-400 mt-2 font-medium max-w-2xl">Create and delegate responsibilities clearly. Use our AI features to optimize the description and route the task to the most available team member.</p>
+                    <p className="text-[14px] text-slate-500 dark:text-slate-400 mt-2 font-medium max-w-2xl leading-relaxed">Create and delegate responsibilities clearly. Optimize your workflow with our AI-powered assignment engine.</p>
                 </div>
             </div>
 
@@ -279,86 +279,83 @@ const AssignTask = () => {
                 
                 {/* LEFT COLUMN: Main Inputs (col-span-8) */}
                 <div className="lg:col-span-8 space-y-6">
-                    <Card className="p-6 sm:p-8 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] border border-slate-100 dark:border-slate-800/60 rounded-2xl bg-white dark:bg-slate-900/90 backdrop-blur-sm">
-                        
-                        {/* Task Title */}
-                        <div className="mb-6">
-                            <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-300 mb-2 tracking-wide uppercase">Task Title</label>
-                            <input
-                                type="text"
-                                value={title}
-                                onChange={(e) => { setTitle(e.target.value); if (validationErrors.title) setValidationErrors({ ...validationErrors, title: null }); }}
-                                placeholder="e.g., Q4 System Infrastructure Security Audit"
-                                className={`w-full px-4 py-3.5 bg-slate-50/50 dark:bg-slate-800/40 border ${validationErrors.title ? 'border-red-400 focus:ring-red-500/20' : 'border-slate-200/60 dark:border-slate-700/60 focus:ring-indigo-500/20 focus:border-indigo-500'} rounded-xl text-[15px] font-semibold text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:bg-white dark:focus:bg-slate-800 transition-all shadow-sm`}
-                            />
-                            {validationErrors.title && <p className="text-red-500 text-[12px] font-semibold mt-2 flex items-center gap-1.5"><AlertCircle size={14} /> {validationErrors.title}</p>}
-                        </div>
-
-                        {/* Task Description */}
-                        <div className="mb-6">
-                            <div className="flex items-center justify-between mb-2">
-                                <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-300 tracking-wide uppercase">Task Description</label>
-                                <button
-                                    type="button"
-                                    onClick={handleImproveAI}
-                                    disabled={isImproving}
-                                    className="group inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50/80 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 rounded-lg transition-all disabled:opacity-50 border border-indigo-100/50 dark:border-indigo-800/30"
-                                >
-                                    {isImproving ? <Loader2 size={14} className="animate-spin text-indigo-600" /> : <Sparkles size={14} className="text-indigo-600 group-hover:scale-110 transition-transform" />}
-                                    {isImproving ? 'Enhancing...' : 'AI Enhance'}
-                                </button>
+                    <Card className="p-0 shadow-sm border-slate-200/60 dark:border-slate-800/80 rounded-2xl bg-white dark:bg-slate-900 overflow-hidden">
+                        <div className="p-6 sm:p-8 space-y-6">
+                            {/* Task Title */}
+                            <div>
+                                <label className="block text-[12px] font-bold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wider">Task Title</label>
+                                <input
+                                    type="text"
+                                    value={title}
+                                    onChange={(e) => { setTitle(e.target.value); if (validationErrors.title) setValidationErrors({ ...validationErrors, title: null }); }}
+                                    placeholder="e.g., Q4 System Infrastructure Security Audit"
+                                    className={`w-full px-4 py-3.5 bg-slate-50/50 dark:bg-slate-800/40 border ${validationErrors.title ? 'border-red-400 focus:ring-red-500/10' : 'border-slate-200/60 dark:border-slate-700/60 focus:ring-blue-500/10 focus:border-blue-500'} rounded-xl text-[15px] font-semibold text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:bg-white dark:focus:bg-slate-800/60 transition-all shadow-sm`}
+                                />
+                                {validationErrors.title && <p className="text-red-500 text-[12px] font-semibold mt-2 flex items-center gap-1.5"><AlertCircle size={14} /> {validationErrors.title}</p>}
                             </div>
-                            <textarea
-                                rows="6"
-                                value={description}
-                                onChange={(e) => { setDescription(e.target.value); if (validationErrors.description) setValidationErrors({ ...validationErrors, description: null }); }}
-                                placeholder="Provide detailed instructions, acceptance criteria, or specific goals for this task..."
-                                className={`w-full px-4 py-3.5 bg-slate-50/50 dark:bg-slate-800/40 border ${validationErrors.description ? 'border-red-400 focus:ring-red-500/20' : 'border-slate-200/60 dark:border-slate-700/60 focus:ring-indigo-500/20 focus:border-indigo-500'} rounded-xl text-[14px] leading-relaxed text-slate-700 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:bg-white dark:focus:bg-slate-800 transition-all shadow-sm resize-y min-h-[120px]`}
-                            ></textarea>
-                            {validationErrors.description && <p className="text-red-500 text-[12px] font-semibold mt-2 flex items-center gap-1.5"><AlertCircle size={14} /> {validationErrors.description}</p>}
-                        </div>
 
-                        {/* Continuation Linker */}
-                        <div>
-                            <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-300 mb-2 tracking-wide uppercase">Continuation of <span className="text-slate-400 font-medium tracking-normal normal-case">(Optional)</span></label>
-                            <div className="relative">
-                                <select
-                                    value={parentTaskId}
-                                    onChange={(e) => setParentTaskId(e.target.value)}
-                                    className="w-full px-4 py-3.5 bg-slate-50/50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-700/60 rounded-xl text-[14px] font-medium text-slate-700 dark:text-slate-200 appearance-none focus:outline-none focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm cursor-pointer block focus:bg-white dark:focus:bg-slate-800"
-                                >
-                                    <option value="">Select an existing task to link...</option>
-                                    {existingTasks.map(task => (
-                                        <option key={task.id} value={task.id}>{task.title}</option>
-                                    ))}
-                                </select>
-                                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 pointer-events-none" />
+                            {/* Task Description */}
+                            <div>
+                                <div className="flex items-center justify-between mb-2">
+                                    <label className="block text-[12px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Task Description</label>
+                                    <button
+                                        type="button"
+                                        onClick={handleImproveAI}
+                                        disabled={isImproving}
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-lg transition-all border border-blue-100 dark:border-blue-800/30"
+                                    >
+                                        {isImproving ? <Loader2 size={13} className="animate-spin text-blue-600" /> : <Sparkles size={13} className="text-blue-600" />}
+                                        {isImproving ? 'Analyzing...' : 'AI Enhance'}
+                                    </button>
+                                </div>
+                                <textarea
+                                    rows="10"
+                                    value={description}
+                                    onChange={(e) => { setDescription(e.target.value); if (validationErrors.description) setValidationErrors({ ...validationErrors, description: null }); }}
+                                    placeholder="Provide detailed instructions, acceptance criteria, or specific goals for this task..."
+                                    className={`w-full px-4 py-3.5 bg-slate-50/50 dark:bg-slate-800/40 border ${validationErrors.description ? 'border-red-400 focus:ring-red-500/10' : 'border-slate-200/60 dark:border-slate-700/60 focus:ring-blue-500/10 focus:border-blue-500'} rounded-xl text-[14px] leading-relaxed text-slate-700 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:bg-white dark:focus:bg-slate-800/60 transition-all shadow-sm resize-y min-h-[160px]`}
+                                ></textarea>
+                                {validationErrors.description && <p className="text-red-500 text-[12px] font-semibold mt-2 flex items-center gap-1.5"><AlertCircle size={14} /> {validationErrors.description}</p>}
+                            </div>
+
+                            {/* Continuation Linker */}
+                            <div>
+                                <label className="block text-[12px] font-bold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wider">Link to Parent Task <span className="lowercase font-normal opacity-60">(Optional)</span></label>
+                                <div className="relative">
+                                    <select
+                                        value={parentTaskId}
+                                        onChange={(e) => setParentTaskId(e.target.value)}
+                                        className="w-full px-4 py-3.5 bg-slate-50/50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-700/60 rounded-xl text-[14px] font-medium text-slate-700 dark:text-slate-200 appearance-none focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all shadow-sm cursor-pointer block focus:bg-white dark:focus:bg-slate-800/60"
+                                    >
+                                        <option value="">None - Independent Task</option>
+                                        {existingTasks.map(task => (
+                                            <option key={task.id} value={task.id}>{task.title}</option>
+                                        ))}
+                                    </select>
+                                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 pointer-events-none" />
+                                </div>
                             </div>
                         </div>
-
                     </Card>
                 </div>
 
-                {/* RIGHT COLUMN: Configuration & Workload (col-span-4) */}
+                {/* RIGHT COLUMN: Configuration */}
                 <div className="lg:col-span-4 space-y-6">
-                    
-                    {/* Config Card */}
-                    <Card className="p-6 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] border border-slate-100 dark:border-slate-800/60 rounded-2xl bg-white dark:bg-slate-900/90 sticky top-8">
-                        
+                    <Card className="p-6 shadow-sm border-slate-200/60 dark:border-slate-800/80 rounded-2xl bg-white dark:bg-slate-900 border">
                         {/* Assign To */}
                         <div className="mb-6">
-                            <div className="flex items-center justify-between mb-2">
-                                <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-300 tracking-wide uppercase">Assignee</label>
+                            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                                <label className="block text-[12px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Assignee</label>
                                 <button
                                     type="button"
                                     onClick={handleSmartAssign}
                                     disabled={isSmartAssigning}
-                                    className="relative overflow-hidden group inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-bold text-white rounded-lg transition-all disabled:opacity-70 shadow-[0_2px_10px_-3px_rgba(139,92,246,0.6)]"
+                                    className="relative overflow-hidden group inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold text-white rounded-lg transition-all disabled:opacity-70 shadow-lg shadow-blue-500/20"
                                 >
-                                    <div className="absolute inset-0 bg-gradient-to-r from-violet-500 via-fuchsia-500 to-violet-500 bg-[length:200%_auto] animate-gradient"></div>
+                                    <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600"></div>
                                     <div className="relative flex items-center gap-1.5 z-10">
-                                        {isSmartAssigning ? <Loader2 size={12} className="animate-spin" /> : <UserCheck size={12} />}
-                                        {isSmartAssigning ? 'Routing...' : 'Smart Auto-Route'}
+                                        {isSmartAssigning ? <Loader2 size={13} className="animate-spin text-white" /> : <UserCheck size={13} />}
+                                        {isSmartAssigning ? 'Routing...' : 'Smart Assignment'}
                                     </div>
                                 </button>
                             </div>
@@ -366,7 +363,7 @@ const AssignTask = () => {
                                 <select
                                     value={assignedTo}
                                     onChange={(e) => { setAssignedTo(e.target.value); if (validationErrors.assignedTo) setValidationErrors({ ...validationErrors, assignedTo: null }); }}
-                                    className={`w-full px-4 py-3.5 bg-slate-50/50 dark:bg-slate-800/40 border ${validationErrors.assignedTo ? 'border-red-400 focus:ring-red-500/20' : 'border-slate-200/60 dark:border-slate-700/60 focus:ring-indigo-500/20 focus:border-indigo-500'} rounded-xl text-[14px] font-semibold text-slate-800 dark:text-slate-100 appearance-none focus:outline-none focus:ring-4 focus:bg-white dark:focus:bg-slate-800 transition-all shadow-sm cursor-pointer block`}
+                                    className={`w-full px-4 py-3.5 bg-slate-50/50 dark:bg-slate-800/40 border ${validationErrors.assignedTo ? 'border-red-400 focus:ring-red-500/10' : 'border-slate-200/60 dark:border-slate-700/60 focus:ring-blue-500/10 focus:border-blue-500'} rounded-xl text-[14px] font-semibold text-slate-800 dark:text-slate-100 appearance-none focus:outline-none focus:ring-4 focus:bg-white dark:focus:bg-slate-800/60 transition-all shadow-sm cursor-pointer block`}
                                 >
                                     <option value="" disabled>Select team member</option>
                                     {employees.map(emp => {
@@ -379,7 +376,7 @@ const AssignTask = () => {
                                                 value={emp.id}
                                                 style={{ color: isOverloaded ? '#ef4444' : 'inherit' }}
                                             >
-                                                {displayName} ({activeCount} active task{activeCount !== 1 ? 's' : ''})
+                                                {displayName} ({activeCount} active tasks)
                                             </option>
                                         );
                                     })}
@@ -390,15 +387,15 @@ const AssignTask = () => {
 
                             {/* User Preview Mini-Stat */}
                             {selectedEmployeeStats && (
-                                <div className="mt-3 p-3 bg-indigo-50/50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-800/30 rounded-xl flex items-center justify-between animate-in fade-in slide-in-from-top-2 duration-300">
+                                <div className="mt-3 p-3 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100/50 dark:border-blue-800/30 rounded-xl flex items-center justify-between">
                                     <div className="text-center px-1 flex-1">
-                                        <p className="text-[10px] font-bold text-indigo-400/80 uppercase tracking-widest mb-0.5">Active</p>
-                                        <p className="text-[14px] font-extrabold text-indigo-900 dark:text-indigo-200">{selectedEmployeeStats.active}</p>
+                                        <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-0.5">Active</p>
+                                        <p className="text-[14px] font-extrabold text-[#0f172a] dark:text-blue-100">{selectedEmployeeStats.active}</p>
                                     </div>
-                                    <div className="w-px h-6 bg-indigo-200/50 dark:bg-indigo-800/50"></div>
+                                    <div className="w-px h-6 bg-blue-100 dark:bg-blue-800/50"></div>
                                     <div className="text-center px-1 flex-1">
-                                        <p className="text-[10px] font-bold text-amber-500/80 uppercase tracking-widest mb-0.5">Overdue</p>
-                                        <p className={`text-[14px] font-extrabold ${selectedEmployeeStats.overdue > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-600 dark:text-slate-400'}`}>{selectedEmployeeStats.overdue}</p>
+                                        <p className="text-[10px] font-bold text-rose-500 uppercase tracking-widest mb-0.5">Overdue</p>
+                                        <p className={`text-[14px] font-extrabold ${selectedEmployeeStats.overdue > 0 ? 'text-rose-600' : 'text-slate-600 dark:text-slate-400'}`}>{selectedEmployeeStats.overdue}</p>
                                     </div>
                                 </div>
                             )}
@@ -406,13 +403,13 @@ const AssignTask = () => {
 
                         {/* Deadline */}
                         <div className="mb-6">
-                            <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-300 mb-2 tracking-wide uppercase">Deadline</label>
+                            <label className="block text-[12px] font-bold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wider">Deadline</label>
                             <div className="relative">
                                 <input
                                     type="date"
                                     value={deadline}
                                     onChange={(e) => { setDeadline(e.target.value); if (validationErrors.deadline) setValidationErrors({ ...validationErrors, deadline: null }); }}
-                                    className={`w-full px-4 py-3.5 bg-slate-50/50 dark:bg-slate-800/40 border ${validationErrors.deadline ? 'border-red-400 focus:ring-red-500/20' : 'border-slate-200/60 dark:border-slate-700/60 focus:ring-indigo-500/20 focus:border-indigo-500'} rounded-xl text-[14px] font-semibold text-slate-800 dark:text-slate-100 appearance-none focus:outline-none focus:ring-4 focus:bg-white dark:focus:bg-slate-800 transition-all shadow-sm cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer`}
+                                    className={`w-full px-4 py-3.5 bg-slate-50/50 dark:bg-slate-800/40 border ${validationErrors.deadline ? 'border-red-400 focus:ring-red-500/10' : 'border-slate-200/60 dark:border-slate-700/60 focus:ring-blue-500/10 focus:border-blue-500'} rounded-xl text-[14px] font-semibold text-slate-800 dark:text-slate-100 appearance-none focus:outline-none focus:ring-4 focus:bg-white dark:focus:bg-slate-800/60 transition-all shadow-sm cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:w-full`}
                                 />
                                 <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 pointer-events-none" />
                             </div>
@@ -421,22 +418,27 @@ const AssignTask = () => {
 
                         {/* Priority Level */}
                         <div className="mb-8">
-                            <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-300 mb-2 tracking-wide uppercase">Priority Level</label>
-                            <div className="flex bg-slate-100/80 dark:bg-slate-800/50 p-1.5 rounded-xl border border-slate-200/50 dark:border-slate-700/50 gap-1.5">
+                            <label className="block text-[12px] font-bold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wider">Priority</label>
+                            <div className="grid grid-cols-3 bg-slate-100/80 dark:bg-slate-800/60 p-1.5 rounded-xl border border-slate-200/50 dark:border-slate-700/50 gap-1.5">
                                 {[
-                                    { level: 'Low', icon: ArrowDownRight, activeColor: 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-[0_1px_3px_rgba(0,0,0,0.05)] border border-slate-200 dark:border-slate-700/50', inactiveColor: 'text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 border border-transparent' },
-                                    { level: 'Medium', icon: Minus, activeColor: 'bg-white dark:bg-slate-800 text-amber-600 dark:text-amber-400 shadow-[0_1px_3px_rgba(0,0,0,0.05)] border border-slate-200 dark:border-slate-700/50', inactiveColor: 'text-slate-500 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 border border-transparent' },
-                                    { level: 'High', icon: ArrowUpRight, activeColor: 'bg-white dark:bg-slate-800 text-rose-600 dark:text-rose-400 shadow-[0_1px_3px_rgba(0,0,0,0.05)] border border-slate-200 dark:border-slate-700/50', inactiveColor: 'text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 border border-transparent' }
-                                ].map(({ level, activeColor, inactiveColor }) => {
-                                    const Icon = level === 'Low' ? ArrowDownRight : level === 'Medium' ? Minus : ArrowUpRight;
+                                    { level: 'Low', icon: ArrowDownRight, color: 'emerald' },
+                                    { level: 'Medium', icon: Minus, color: 'blue' },
+                                    { level: 'High', icon: ArrowUpRight, color: 'rose' }
+                                ].map(({ level, icon: Icon, color }) => {
+                                    const isActive = priority === level;
+                                    const colorClasses = {
+                                        emerald: isActive ? 'bg-white dark:bg-slate-700 text-emerald-600 shadow-sm' : 'text-slate-500 hover:text-emerald-500',
+                                        blue: isActive ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-500 hover:text-blue-500',
+                                        rose: isActive ? 'bg-white dark:bg-slate-700 text-rose-600 shadow-sm' : 'text-slate-500 hover:text-rose-500'
+                                    };
                                     return (
                                         <button
                                             key={level}
                                             type="button"
                                             onClick={() => setPriority(level)}
-                                            className={`flex-1 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 py-2 px-1 text-[13px] font-bold rounded-lg transition-all ${priority === level ? activeColor : inactiveColor}`}
+                                            className={`flex flex-col items-center justify-center py-2 px-1 text-[11px] font-bold rounded-lg transition-all ${colorClasses[color]}`}
                                         >
-                                            <Icon size={16} strokeWidth={priority === level ? 2.5 : 2} />
+                                            <Icon size={16} strokeWidth={isActive ? 3 : 2} className="mb-0.5" />
                                             {level}
                                         </button>
                                     );
@@ -444,64 +446,64 @@ const AssignTask = () => {
                             </div>
                         </div>
 
-                        {/* Submit Actions */}
-                        <div className="pt-2 border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row gap-3">
-                            <button disabled={isSubmitting} type="submit" className="flex-1 py-3.5 px-4 rounded-xl text-[14px] font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-[0_4px_14px_0_rgba(37,99,235,0.39)] hover:shadow-[0_6px_20px_rgba(37,99,235,0.23)] transition-all focus:ring-4 focus:ring-blue-500/20 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed transform hover:-translate-y-0.5 w-full">
-                                {isSubmitting ? (
-                                    <>
-                                        <Loader2 size={16} className="animate-spin text-white" />
-                                        Processing...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Send size={16} className="text-white fill-white/80" />
-                                        Launch Task
-                                    </>
-                                )}
-                            </button>
-                        </div>
+                        <button disabled={isSubmitting} type="submit" className="w-full py-4 rounded-xl text-[15px] font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/30 transition-all flex items-center justify-center gap-2 transform active:scale-[0.98] disabled:opacity-70">
+                            {isSubmitting ? <Loader2 size={18} className="animate-spin text-white" /> : <Send size={18} className="fill-white/20" />}
+                            {isSubmitting ? 'Processing Task...' : 'Launch Task'}
+                        </button>
                     </Card>
 
-                    {/* Team Workload Sidebar */}
+                    {/* Team Workload Sidebar (Desktop) */}
                     {teamWorkload.length > 0 && (
-                        <Card className="p-6 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] border border-slate-100 dark:border-slate-800/60 rounded-2xl bg-white dark:bg-slate-900/90 hidden lg:block">
-                            <div className="flex items-center justify-between mb-5">
-                                <h3 className="text-[12px] font-bold text-slate-500 dark:text-slate-400 tracking-wider uppercase">Team Capacity</h3>
-                            </div>
-                            <div className="space-y-4">
-                                {teamWorkload.map((member) => {
-                                    // Calculate progress bar width (max out visually at 10 tasks)
-                                    const fillPercent = Math.min((member.tasks / 10) * 100, 100);
-                                    const isHigh = member.tasks > 5;
-                                    
-                                    return (
-                                        <div key={member.id} className="group">
-                                            <div className="flex items-center justify-between mb-1.5">
-                                                <div className="flex items-center gap-2.5">
-                                                    <div className="h-6 w-6 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center font-bold text-[10px] shrink-0">
-                                                        {member.avatar}
+                        <div className="hidden lg:block space-y-4">
+                            <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.2em] px-2">Team Capacity</h3>
+                            <Card className="p-5 border-slate-200/60 dark:border-slate-800/80 rounded-2xl bg-white dark:bg-slate-900 border shadow-none">
+                                <div className="space-y-4">
+                                    {teamWorkload.map((member) => {
+                                        const fillPercent = Math.min((member.tasks / 10) * 100, 100);
+                                        const isHigh = member.tasks > 5;
+                                        return (
+                                            <div key={member.id} className="group">
+                                                <div className="flex items-center justify-between mb-1.5">
+                                                    <div className="flex items-center gap-2.5">
+                                                        <div className="h-6 w-6 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center font-bold text-[10px]">
+                                                            {member.avatar}
+                                                        </div>
+                                                        <span className="text-[13px] font-bold text-slate-700 dark:text-slate-200">{member.name}</span>
                                                     </div>
-                                                    <span className="text-[13px] font-bold text-[#0f172a] dark:text-white truncate max-w-[100px]">{member.name}</span>
+                                                    <span className={`text-[12px] font-bold ${isHigh ? 'text-rose-500' : 'text-slate-500 dark:text-slate-400'}`}>
+                                                        {member.tasks} tasks
+                                                    </span>
                                                 </div>
-                                                <span className={`text-[12px] font-bold ${isHigh ? 'text-rose-500' : 'text-slate-500 dark:text-slate-400'}`}>
-                                                    {member.tasks} <span className="font-medium text-[10px] uppercase text-slate-400">tasks</span>
-                                                </span>
+                                                <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                                                    <div className={`h-full rounded-full transition-all duration-500 ${isHigh ? 'bg-rose-500' : 'bg-blue-500'}`} style={{ width: `${fillPercent}%` }}></div>
+                                                </div>
                                             </div>
-                                            <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
-                                                <div 
-                                                    className={`h-full rounded-full transition-all duration-500 ease-out ${isHigh ? 'bg-rose-500' : 'bg-blue-500 group-hover:bg-blue-400'}`} 
-                                                    style={{ width: `${fillPercent}%` }}
-                                                ></div>
-                                            </div>
-                                        </div>
-                                    )
-                                })}
-                            </div>
-                        </Card>
+                                        );
+                                    })}
+                                </div>
+                            </Card>
+                        </div>
                     )}
                 </div>
             </form>
 
+            {/* Mobile Workload (visible only on small screens) */}
+            <div className="lg:hidden mt-8 space-y-4">
+                <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-4 text-center">Team Capacity</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    {teamWorkload.slice(0, 3).map((member) => (
+                        <div key={member.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl flex items-center gap-3 shadow-sm">
+                            <div className="h-10 w-10 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center font-extrabold text-xs border border-blue-100 dark:border-blue-900/50">
+                                {member.avatar}
+                            </div>
+                            <div>
+                                <h4 className="text-[13px] font-bold text-slate-800 dark:text-white">{member.name}</h4>
+                                <p className="text-[11px] text-slate-500 font-medium">{member.tasks} Active Tasks</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
 
             {/* AI Preview Modal */}
             {aiPreview.show && (
